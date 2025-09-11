@@ -19,10 +19,6 @@ Esta é uma aplicação web desenvolvida com Flask para registar, visualizar e e
 -   **Frontend:** HTML, CSS, JavaScript
 -   **Templates:** Jinja2
 
-# Aplicação Web de Gestão de Atendimentos
-
-Esta é uma aplicação web desenvolvida com Flask para registar, visualizar e editar atendimentos. O sistema foi desenhado para ser uma ferramenta interna, otimizando o fluxo de trabalho de diferentes tipos de registo, incluindo inserções padrão, de convénio e em massa para múltiplas lojas.
-
 ## Funcionalidades Principais
 
 -   **Inserção de Atendimentos:** Formulários em grade para inserção rápida de múltiplos registos.
