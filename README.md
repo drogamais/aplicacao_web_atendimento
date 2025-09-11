@@ -19,23 +19,6 @@ Esta é uma aplicação web desenvolvida com Flask para registar, visualizar e e
 -   **Frontend:** HTML, CSS, JavaScript
 -   **Templates:** Jinja2
 
-## Funcionalidades Principais
-
--   **Inserção de Atendimentos:** Formulários em grade para inserção rápida de múltiplos registos.
--   **Páginas Dedicadas:** Interfaces separadas para atendimentos Padrão e de Convênio.
--   **Inserção em Massa:** Uma funcionalidade para registar um mesmo tipo de atendimento para dezenas de lojas de uma só vez.
--   **Edição e Visualização:** Uma página para visualizar os registos recentes, com filtros por data e por responsável. Apenas registos dos últimos 3 dias podem ser editados.
--   **Interface Limpa:** O layout foi organizado para ser intuitivo e fácil de usar.
-
-## Tecnologias Utilizadas
-
--   **Backend:** Python
--   **Framework Web:** Flask
--   **Servidor de Produção:** Waitress
--   **Banco de Dados:** MySQL (ligação via `mysql-connector-python`)
--   **Frontend:** HTML, CSS, JavaScript
--   **Templates:** Jinja2
-
 
 ## Pré-requisitos
 
