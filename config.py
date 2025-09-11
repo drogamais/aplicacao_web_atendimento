@@ -1,13 +1,11 @@
-# aplicacao_web_atendimento/config.py
+# aplicacao_web_atendimento/config.py.example
 
-# Chave secreta para a segurança da sessão do Flask
-SECRET_KEY = 'meu-app-e-muito-seguro-12345'
+SECRET_KEY = 'troque-esta-chave-secreta'
 
-# Configurações do banco de dados importadas do seu arquivo original
 DB_CONFIG = {
-    "user": "drogamais",
-    "password": "dB$MYSql@2119",
-    "host": "10.48.12.20",
+    "user": "seu_usuario_aqui",
+    "password": "SUA_SENHA_AQUI",
+    "host": "ip_do_banco_de_dados",
     "port": 3306,
     "database": "dbSults",
     "collation": "utf8mb4_general_ci"
