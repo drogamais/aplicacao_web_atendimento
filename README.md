@@ -19,17 +19,6 @@ Esta é uma aplicação web desenvolvida com Flask para registar, visualizar e e
 -   **Frontend:** HTML, CSS, JavaScript
 -   **Templates:** Jinja2
 
-## Estrutura do Projeto
-
-O projeto foi organizado de forma modular para facilitar a manutenção e a escalabilidade.
-
-Com certeza! Criar um bom README.md é o passo final para documentar e profissionalizar o seu projeto. Ele serve como um manual de instruções, facilitando a sua vida para apresentar o projeto e permitindo que qualquer outra pessoa possa executá-lo e dar-lhe manutenção.
-
-Com base em tudo o que construímos, aqui está uma sugestão completa para o seu README.md.
-
-Instrução: Crie um ficheiro chamado README.md na pasta raiz do seu projeto (aplicacao_web_atendimento/) e cole o seguinte conteúdo dentro dele.
-Markdown
-
 # Aplicação Web de Gestão de Atendimentos
 
 Esta é uma aplicação web desenvolvida com Flask para registar, visualizar e editar atendimentos. O sistema foi desenhado para ser uma ferramenta interna, otimizando o fluxo de trabalho de diferentes tipos de registo, incluindo inserções padrão, de convénio e em massa para múltiplas lojas.
@@ -50,25 +39,6 @@ Esta é uma aplicação web desenvolvida com Flask para registar, visualizar e e
 -   **Banco de Dados:** MySQL (ligação via `mysql-connector-python`)
 -   **Frontend:** HTML, CSS, JavaScript
 -   **Templates:** Jinja2
-
-## Estrutura do Projeto
-
-O projeto foi organizado de forma modular para facilitar a manutenção e a escalabilidade.
-
-/aplicacao_web_atendimento
-├── static/             # Ficheiros estáticos (CSS, JS)
-│   ├── js/             # Scripts modulares por funcionalidade
-│   └── (css...)        # Estilos modulares por componente
-├── templates/          # Ficheiros HTML com Jinja2
-│   └── base.html       # Template base que as outras páginas herdam
-├── venv/               # (Ignorado pelo Git) Ambiente virtual do Python
-├── app.py              # Coração da aplicação: define as rotas e a lógica principal
-├── run.py              # Ponto de entrada para EXECUTAR a aplicação (dev/prod)
-├── config.py           # (Ignorado pelo Git) Contém senhas e chaves secretas
-├── database.py         # Centraliza toda a comunicação com o banco de dados
-├── constants.py        # Guarda listas e valores fixos (opções de menu, etc.)
-├── requirements.txt    # Lista de todas as dependências Python do projeto
-└── .gitignore          # Ficheiro que define o que o Git deve ignorar
 
 
 ## Pré-requisitos
