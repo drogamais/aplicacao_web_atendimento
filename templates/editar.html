@@ -8,12 +8,19 @@
 </head>
 <body>
     <div class="container">
+        <nav class="navbar">
+            <div class="dropdown">
+                <button onclick="toggleMenu()" class="dropbtn">Menu</button>
+                <div id="myDropdown" class="dropdown-content">
+                    <a href="{{ url_for('index') }}">Inserção Padrão</a>
+                    <a href="{{ url_for('convenio') }}">Convênio</a>
+                    <a href="{{ url_for('massa_dados') }}">Inserir em Massa</a>
+                    <a href="{{ url_for('editar_dados') }}">Editar Lançamentos</a>
+                </div>
+            </div>
+        </nav>
+        
         <h1>Editar Atendimentos</h1>
-
-        <p>
-            <a href="{{ url_for('index') }}" class="button-link">Ir para a página de Inserção</a>
-            <a href="{{ url_for('massa_dados') }}" class="button-link">Inserir em Massa</a> 
-        </p>
 
         <div class="filter-container">
             <h2>Filtros</h2>
@@ -140,6 +147,25 @@
                 });
             });
         });
+    </script>
+    <script>
+        /* Função para mostrar/esconder o dropdown */
+        function toggleMenu() {
+            document.getElementById("myDropdown").classList.toggle("show");
+        }
+
+        // Fecha o dropdown se o usuário clicar fora dele
+        window.onclick = function(event) {
+            if (!event.target.matches('.dropbtn')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
     </script>
 
 </body>

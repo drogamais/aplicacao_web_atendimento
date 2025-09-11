@@ -17,13 +17,17 @@ TAREFAS_OPCOES = [
     "MATERIAIS DE MARKETING", "MATERIAIS OBRIGATÓRIOS", "PBM", "PEDIDOS", 
     "SOMAR", "SUPORTE OPERACIONAL"
 ]
-RESPONSAVEIS_OPCOES = [
+# Lista de responsáveis para a página principal (sem a Valéria)
+INDEX_RESPONSAVEIS_OPCOES = [
     "LÍVIA VICTORIA LOURENÇO", "NATÁLIA BICHOFF", "DIEGO CORRENTE TANACA", 
-    "FABIO HENRIQUE DE PÁDUA", "MIGUEL KENJI IWAMOTO", "LUIZ FELIPHE MARROCO", 
-    "VALERIA APARECIDA BONFIM SOARES"
+    "FABIO HENRIQUE DE PÁDUA", "MIGUEL KENJI IWAMOTO", "LUIZ FELIPHE MARROCO"
 ]
+# Lista completa para filtros e outras páginas
+RESPONSAVEIS_OPCOES = INDEX_RESPONSAVEIS_OPCOES + ["VALERIA APARECIDA BONFIM SOARES"]
+
 TIPOS_OPCOES = ["WHATSAPP", "TELEFONE", "EMAIL"]
 ACOES_OPCOES = ["ATIVA", "PASSIVA"] 
+CONVENIO_TAREFAS_OPCOES = ["SOLICITAÇÃO", "LIBERAÇÃO", "DÚVIDAS"]
 
 # --- MAPEAMENTO DE RESPONSÁVEL PARA FUNÇÃO ---
 FUNCAO_MAP = {
@@ -63,7 +67,6 @@ def get_lojas_ativas():
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("USE drogamais")
-        # Query ajustada para filtrar lojas sem número ou com número 0
         query = """
             SELECT LOJA_NUMERO, FANTASIA 
             FROM tb_loja 
@@ -88,49 +91,65 @@ def index():
     return render_template(
         'index.html', 
         tarefas=TAREFAS_OPCOES,
-        responsaveis=RESPONSAVEIS_OPCOES,
+        responsaveis=INDEX_RESPONSAVEIS_OPCOES, # Passa a lista sem a Valéria
         tipos=TIPOS_OPCOES,
-        acoes=ACOES_OPCOES
+        acoes=ACOES_OPCOES,
+        active_page='index'
     )
-    
-# ... (As rotas /salvar, /editar, e /atualizar permanecem as mesmas) ...
+
+@app.route('/convenio')
+def convenio():
+    """ Rota para a página de convênios. """
+    return render_template(
+        'convenio.html',
+        tarefas=CONVENIO_TAREFAS_OPCOES,
+        responsaveis=["VALERIA APARECIDA BONFIM SOARES"],
+        tipos=TIPOS_OPCOES,
+        acoes=ACOES_OPCOES,
+        active_page='convenio'
+    )
+
 @app.route('/salvar', methods=['POST'])
 def salvar_dados():
     """ Rota que recebe os dados do formulário e salva no banco. """
-    datas = request.form.getlist('data')
+    data = request.form.get('data')
+    nome_responsavel = request.form.get('responsavel')
+    
     tarefas = request.form.getlist('tarefa')
-    nomes_responsaveis = request.form.getlist('responsavel')
     lojas = request.form.getlist('loja')
     tipos = request.form.getlist('tipo')
     acoes = request.form.getlist('acao')
     assuntos = request.form.getlist('assunto')
 
+    if not data or not nome_responsavel:
+        flash('Os campos "Data" e "Responsável" são obrigatórios.', 'danger')
+        return redirect(request.referrer)
+
     registros_para_inserir = []
     
-    for i in range(len(datas)):
-        if datas[i]:
-            if not tarefas[i] or not nomes_responsaveis[i] or not lojas[i] or not tipos[i] or not acoes[i]:
-                flash(f'Erro na Linha {i+1}: Todos os campos, exceto "Assunto", são obrigatórios.', 'danger')
-                return redirect(url_for('index'))
+    for i in range(len(lojas)):
+        if lojas[i]: 
+            if not tarefas[i] or not tipos[i] or not acoes[i]:
+                flash(f'Erro na Linha {i+1}: Os campos "Tarefa", "Loja", "Tipo" e "Ação" são obrigatórios.', 'danger')
+                return redirect(request.referrer)
             
             try:
                 loja_num = int(lojas[i])
                 if not (0 <= loja_num <= 999):
-                    flash(f'Erro na Linha {i+1}: O número da loja deve estar entre 1 e 999.', 'danger')
-                    return redirect(url_for('index'))
+                    flash(f'Erro na Linha {i+1}: O número da loja deve estar entre 0 e 999.', 'danger')
+                    return redirect(request.referrer)
             except ValueError:
                 flash(f'Erro na Linha {i+1}: O valor da loja deve ser um número.', 'danger')
-                return redirect(url_for('index'))
+                return redirect(request.referrer)
             
             chave_unica = str(uuid.uuid4())
-            responsavel_atual = nomes_responsaveis[i]
-            funcao_atual = FUNCAO_MAP.get(responsavel_atual, None)
+            funcao_atual = FUNCAO_MAP.get(nome_responsavel, None)
 
             novo_registro = (
                 chave_unica,
-                datas[i],
+                data,
                 tarefas[i],
-                responsavel_atual,
+                nome_responsavel,
                 funcao_atual,
                 loja_num,
                 tipos[i],
@@ -140,13 +159,13 @@ def salvar_dados():
             registros_para_inserir.append(novo_registro)
 
     if not registros_para_inserir:
-        flash('Nenhum dado preenchido para salvar.', 'warning')
-        return redirect(url_for('index'))
+        flash('Nenhuma linha preenchida para salvar.', 'warning')
+        return redirect(request.referrer)
 
     conn = get_db_connection()
     if conn is None:
-        flash('Erro de conexão com o banco de dados. Verifique as credenciais e a rede.', 'danger')
-        return redirect(url_for('index'))
+        flash('Erro de conexão com o banco de dados.', 'danger')
+        return redirect(request.referrer)
         
     cursor = conn.cursor()
     
@@ -166,7 +185,7 @@ def salvar_dados():
         cursor.close()
         conn.close()
 
-    return redirect(url_for('index'))
+    return redirect(request.referrer)
 
 
 @app.route('/editar')
@@ -178,20 +197,16 @@ def editar_dados():
     
     cursor = conn.cursor(dictionary=True)
 
-    # --- LÓGICA DE FILTRO ALTERADA ---
-    data_filtro = request.args.get('data_filtro') # Pega o novo campo de data única
+    data_filtro = request.args.get('data_filtro')
     responsavel_filtro = request.args.get('responsavel')
 
     sql_query = "SELECT * FROM tb_atendimentos WHERE 1=1"
     params = []
 
-    # Adiciona filtros à query dinamicamente
     if data_filtro:
-        # Se uma data específica foi fornecida, filtra por ela
         sql_query += " AND data = %s"
         params.append(data_filtro)
     else:
-        # Se nenhuma data foi fornecida, usa o padrão dos últimos 3 dias
         tres_dias_atras = date.today() - timedelta(days=1)
         sql_query += " AND data >= %s"
         params.append(tres_dias_atras)
@@ -218,7 +233,7 @@ def editar_dados():
         responsaveis_opcoes=RESPONSAVEIS_OPCOES,
         tipos_opcoes=TIPOS_OPCOES,
         acoes_opcoes=ACOES_OPCOES,
-        # Passa o novo filtro de volta para o template
+        active_page='editar',
         filtros={
             'data_filtro': data_filtro,
             'responsavel': responsavel_filtro
@@ -310,7 +325,8 @@ def massa_dados():
         responsaveis=RESPONSAVEIS_OPCOES,
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
-        lojas=lojas_ativas  # Passa a lista de lojas para o template
+        lojas=lojas_ativas,
+        active_page='massa'
     )
 
 @app.route('/salvar_massa', methods=['POST'])

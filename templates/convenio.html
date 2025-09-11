@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entrada de Dados</title>
+    <title>Entrada de Convênios</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -24,15 +24,15 @@
             <div class="dropdown">
                 <button onclick="toggleMenu()" class="dropbtn">Menu</button>
                 <div id="myDropdown" class="dropdown-content">
-                    <a href="{{ url_for('index') }}" class="{{ 'active' if active_page == 'index' else '' }}">Inserção Padrão</a>
-                    <a href="{{ url_for('convenio') }}" class="{{ 'active' if active_page == 'convenio' else '' }}">Convênio</a>
-                    <a href="{{ url_for('massa_dados') }}" class="{{ 'active' if active_page == 'massa' else '' }}">Inserir em Massa</a>
-                    <a href="{{ url_for('editar_dados') }}" class="{{ 'active' if active_page == 'editar' else '' }}">Editar Lançamentos</a>
+                    <a href="{{ url_for('index') }}">Inserção Padrão</a>
+                    <a href="{{ url_for('convenio') }}">Convênio</a>
+                    <a href="{{ url_for('massa_dados') }}">Inserir em Massa</a>
+                    <a href="{{ url_for('editar_dados') }}">Editar Lançamentos</a>
                 </div>
             </div>
         </nav>
 
-        <h1>Entrada de Atendimentos</h1>
+        <h1>Entrada de Atendimentos de Convênio</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -43,7 +43,7 @@
         {% endwith %}
 
         <form action="{{ url_for('salvar_dados') }}" method="post" id="atendimento-form">
-            
+
             <div class="filter-form" style="margin-bottom: 25px;">
                 <div class="form-group">
                     <label for="data">Data:</label>
@@ -52,15 +52,14 @@
                 <div class="form-group">
                     <label for="responsavel">Responsável:</label>
                     <select id="responsavel" name="responsavel" required>
-                        <option value="">Selecione...</option>
                         {% for resp in responsaveis %}
-                        <option value="{{ resp }}">{{ resp }}</option>
+                        <option value="{{ resp }}" selected>{{ resp }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
 
-            <table id="index-table">
+            <table id="convenio-table">
                 <thead>
                     <tr>
                         <th class="th-tarefa">Tarefa</th>
@@ -129,6 +128,5 @@
             }
         }
     </script>
-
 </body>
 </html>
