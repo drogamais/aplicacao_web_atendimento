@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrada de Dados</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div id="notification" class="notification"></div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <p>Você tem certeza que deseja limpar todos os campos do formulário?</p>
+            <div class="modal-actions">
+                <button id="modal-btn-cancel" class="modal-button-cancel">Cancelar</button>
+                <button id="modal-btn-confirm" class="modal-button-confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Entrada de Atendimentos</h1>
+
+        <p>
+            <a href="{{ url_for('editar_dados') }}" class="button-link">Ir para a página de Edição</a>
+            <a href="{{ url_for('massa_dados') }}" class="button-link">Inserir em Massa</a> 
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('salvar_dados') }}" method="post" id="atendimento-form">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tarefa</th>
+                        <th>Responsável</th>
+                        <th>Loja (0-999)</th>
+                        <th>Tipo</th>
+                        <th>Ação</th>
+                        <th>Assunto (Opcional)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in range(10) %}
+                    <tr>
+                        <td><input type="date" name="data"></td>
+                        <td>
+                            <select name="tarefa">
+                                <option value="">Selecione...</option>
+                                {% for tarefa in tarefas %}
+                                <option value="{{ tarefa }}">{{ tarefa }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <select name="responsavel">
+                                <option value="">Selecione...</option>
+                                {% for resp in responsaveis %}
+                                <option value="{{ resp }}">{{ resp }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="loja" min="0" max="999"></td>
+                        <td>
+                             <select name="tipo">
+                                <option value="">Selecione...</option>
+                                {% for tipo in tipos %}
+                                <option value="{{ tipo }}">{{ tipo }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <select name="acao">
+                                <option value="">Selecione...</option>
+                                {% for acao in acoes %}
+                                <option value="{{ acao }}">{{ acao }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="text" name="assunto" maxlength="255"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit">Salvar Dados</button>
+        </form>
+        
+        <button id="btn-limpar" class="button-danger">Limpar Formulário</button>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
