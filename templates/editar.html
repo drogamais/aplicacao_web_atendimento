@@ -1,172 +1,109 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Dados</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <nav class="navbar">
-            <div class="dropdown">
-                <button onclick="toggleMenu()" class="dropbtn">Menu</button>
-                <div id="myDropdown" class="dropdown-content">
-                    <a href="{{ url_for('index') }}">Inserção Padrão</a>
-                    <a href="{{ url_for('convenio') }}">Convênio</a>
-                    <a href="{{ url_for('massa_dados') }}">Inserir em Massa</a>
-                    <a href="{{ url_for('editar_dados') }}">Editar Lançamentos</a>
-                </div>
+{% extends "base.html" %}
+
+{% block title %}Editar Dados{% endblock %}
+
+{% block content %}
+    <h1>Editar Atendimentos</h1>
+
+    <div class="filter-container">
+        <form action="{{ url_for('editar_dados') }}" method="get" class="filter-form">
+            
+            <div class="form-group">
+                <label for="data_filtro">Filtrar por Data Específica:</label>
+                <input type="date" id="data_filtro" name="data_filtro" value="{{ filtros.data_filtro or '' }}">
             </div>
-        </nav>
-        
-        <h1>Editar Atendimentos</h1>
 
-        <div class="filter-container">
-            <h2>Filtros</h2>
-            <form action="{{ url_for('editar_dados') }}" method="get" class="filter-form">
-                
-                <div class="form-group">
-                    <label for="data_filtro">Filtrar por Data Específica:</label>
-                    <input type="date" id="data_filtro" name="data_filtro" value="{{ filtros.data_filtro or '' }}">
-                </div>
-
-                <div class="form-group">
-                    <label for="responsavel">Responsável:</label>
-                    <select id="responsavel" name="responsavel">
-                        <option value="">Todos</option>
-                        {% for resp in responsaveis_opcoes %}
-                        <option value="{{ resp }}" {% if resp == filtros.responsavel %}selected{% endif %}>{{ resp }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="button-filter">Filtrar</button>
-                </div>
-            </form>
-        </div>
-
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        {% if atendimentos %}
-        <form action="{{ url_for('atualizar_dados') }}" method="post">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Editar?</th>
-                        <th>Data</th>
-                        <th>Tarefa</th>
-                        <th>Responsável</th>
-                        <th>Loja</th>
-                        <th>Tipo</th>
-                        <th>Ação</th>
-                        <th>Assunto</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for atendimento in atendimentos %}
-                        
-                        {% set is_editable = atendimento.data >= data_corte %}
-
-                    <tr>
-                        <td>
-                            {% if is_editable %}
-                                <input type="checkbox" name="selecionado" value="{{ atendimento.chave_id }}" class="edit-checkbox">
-                            {% endif %}
-                        </td>
-
-                        <td><input type="date" name="data_{{ atendimento.chave_id }}" value="{{ atendimento.data.strftime('%Y-%m-%d') }}" disabled></td>
-                        <td>
-                            <select name="tarefa_{{ atendimento.chave_id }}" disabled>
-                                {% for tarefa in tarefas_opcoes %}
-                                <option value="{{ tarefa }}" {% if tarefa == atendimento.tarefa %}selected{% endif %}>{{ tarefa }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="responsavel_{{ atendimento.chave_id }}" disabled>
-                                {% for resp in responsaveis_opcoes %}
-                                <option value="{{ resp }}" {% if resp == atendimento.responsavel %}selected{% endif %}>{{ resp }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="number" name="loja_{{ atendimento.chave_id }}" value="{{ atendimento.loja }}" min="0" max="999" disabled></td>
-                        <td>
-                             <select name="tipo_{{ atendimento.chave_id }}" disabled>
-                                {% for tipo in tipos_opcoes %}
-                                <option value="{{ tipo }}" {% if tipo == atendimento.tipo %}selected{% endif %}>{{ tipo }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="acao_{{ atendimento.chave_id }}" disabled>
-                                {% for acao in acoes_opcoes %}
-                                <option value="{{ acao }}" {% if acao == atendimento.acao %}selected{% endif %}>{{ acao }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" name="assunto_{{ atendimento.chave_id }}" value="{{ atendimento.assunto or '' }}" maxlength="255" disabled></td>
-                    </tr>
+            <div class="form-group">
+                <label for="responsavel">Responsável:</label>
+                <select id="responsavel" name="responsavel">
+                    <option value="">Todos</option>
+                    {% for resp in responsaveis_opcoes %}
+                    <option value="{{ resp }}" {% if resp == filtros.responsavel %}selected{% endif %}>{{ resp }}</option>
                     {% endfor %}
-                </tbody>
-            </table>
-            <button type="submit">Salvar Alterações</button>
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="button-filter">Filtrar</button>
+            </div>
         </form>
-        {% else %}
-        <p>Nenhum registro encontrado com os filtros aplicados.</p>
-        {% endif %}
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Seleciona todas as checkboxes com a classe 'edit-checkbox'
-            const checkboxes = document.querySelectorAll('.edit-checkbox');
-            
-            checkboxes.forEach(checkbox => {
-                // Adiciona um 'escutador' de eventos para cada checkbox
-                checkbox.addEventListener('change', function() {
-                    // Encontra a linha (tr) mais próxima da checkbox que foi clicada
-                    const row = this.closest('tr');
-                    // Seleciona todos os campos de input e select dentro daquela linha
-                    const inputs = row.querySelectorAll('input[type="date"], input[type="number"], input[type="text"], select');
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if atendimentos %}
+    <form action="{{ url_for('atualizar_dados') }}" method="post">
+        <table>
+            <thead>
+                <tr>
+                    <th>Editar?</th>
+                    <th>Data</th>
+                    <th>Tarefa</th>
+                    <th>Responsável</th>
+                    <th>Loja</th>
+                    <th>Tipo</th>
+                    <th>Ação</th>
+                    <th>Assunto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for atendimento in atendimentos %}
                     
-                    // Itera sobre cada campo encontrado
-                    inputs.forEach(input => {
-                        // A propriedade 'disabled' do campo será o contrário de 'checked' da checkbox
-                        // Se a checkbox estiver marcada (checked=true), o campo será habilitado (disabled=false)
-                        // Se a checkbox não estiver marcada (checked=false), o campo será desabilitado (disabled=true)
-                        input.disabled = !this.checked;
-                    });
-                });
-            });
-        });
-    </script>
-    <script>
-        /* Função para mostrar/esconder o dropdown */
-        function toggleMenu() {
-            document.getElementById("myDropdown").classList.toggle("show");
-        }
+                    {% set is_editable = atendimento.data >= data_corte %}
 
-        // Fecha o dropdown se o usuário clicar fora dele
-        window.onclick = function(event) {
-            if (!event.target.matches('.dropbtn')) {
-                var dropdowns = document.getElementsByClassName("dropdown-content");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    var openDropdown = dropdowns[i];
-                    if (openDropdown.classList.contains('show')) {
-                        openDropdown.classList.remove('show');
-                    }
-                }
-            }
-        }
-    </script>
+                <tr>
+                    <td>
+                        {% if is_editable %}
+                            <input type="checkbox" name="selecionado" value="{{ atendimento.chave_id }}" class="edit-checkbox">
+                        {% endif %}
+                    </td>
 
-</body>
-</html>
+                    <td><input type="date" name="data_{{ atendimento.chave_id }}" value="{{ atendimento.data.strftime('%Y-%m-%d') }}" disabled></td>
+                    <td>
+                        <select name="tarefa_{{ atendimento.chave_id }}" disabled>
+                            {% for tarefa in tarefas_opcoes %}
+                            <option value="{{ tarefa }}" {% if tarefa == atendimento.tarefa %}selected{% endif %}>{{ tarefa }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="responsavel_{{ atendimento.chave_id }}" disabled>
+                            {% for resp in responsaveis_opcoes %}
+                            <option value="{{ resp }}" {% if resp == atendimento.responsavel %}selected{% endif %}>{{ resp }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="number" name="loja_{{ atendimento.chave_id }}" value="{{ atendimento.loja }}" min="0" max="999" disabled></td>
+                    <td>
+                            <select name="tipo_{{ atendimento.chave_id }}" disabled>
+                            {% for tipo in tipos_opcoes %}
+                            <option value="{{ tipo }}" {% if tipo == atendimento.tipo %}selected{% endif %}>{{ tipo }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="acao_{{ atendimento.chave_id }}" disabled>
+                            {% for acao in acoes_opcoes %}
+                            <option value="{{ acao }}" {% if acao == atendimento.acao %}selected{% endif %}>{{ acao }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" name="assunto_{{ atendimento.chave_id }}" value="{{ atendimento.assunto or '' }}" maxlength="255" disabled></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">Salvar Alterações</button>
+    </form>
+    {% else %}
+    <p>Nenhum registro encontrado com os filtros aplicados.</p>
+    {% endif %}
+{% endblock %} {% block scripts %}
+    <script src="{{ url_for('static', filename='js/editPage.js') }}"></script>
+{% endblock %}

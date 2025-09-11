@@ -1,97 +1,48 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-import mysql.connector
-from mysql.connector import Error
-import datetime
+# aplicacao_web_atendimento/app.py
+
+from flask import Flask, render_template, request, redirect, url_for, flash, g
 import uuid
 from datetime import date, timedelta
 
-# --- CONFIGURAÇÃO ---
+# Importando de nossos novos módulos
+import database
+from config import SECRET_KEY
+from constants import (
+    TAREFAS_OPCOES, INDEX_RESPONSAVEIS_OPCOES, RESPONSAVEIS_OPCOES,
+    TIPOS_OPCOES, ACOES_OPCOES, CONVENIO_TAREFAS_OPCOES, FUNCAO_MAP
+)
+
 app = Flask(__name__)
-app.secret_key = 'meu-app-e-muito-seguro-12345'
+app.secret_key = SECRET_KEY
 
-# --- OPÇÕES PARA OS MENUS (HARDCODED) ---
-TAREFAS_OPCOES = [
-    "ACODE - 2024", "ACODE - 2025", "ACODE - 2026", "ADMINISTRATIVO", 
-    "CAMPANHA PBM", "CAMPANHAS", "COMERCIAL", "CONVENIO", "DEVOLUÇÕES", 
-    "DÚVIDAS GERAIS", "FACHADA E LAYOUT", "FINANCEIRO", "LOGISTICA", 
-    "MATERIAIS DE MARKETING", "MATERIAIS OBRIGATÓRIOS", "PBM", "PEDIDOS", 
-    "SOMAR", "SUPORTE OPERACIONAL"
-]
-# Lista de responsáveis para a página principal (sem a Valéria)
-INDEX_RESPONSAVEIS_OPCOES = [
-    "LÍVIA VICTORIA LOURENÇO", "NATÁLIA BICHOFF", "DIEGO CORRENTE TANACA", 
-    "FABIO HENRIQUE DE PÁDUA", "MIGUEL KENJI IWAMOTO", "LUIZ FELIPHE MARROCO"
-]
-# Lista completa para filtros e outras páginas
-RESPONSAVEIS_OPCOES = INDEX_RESPONSAVEIS_OPCOES + ["VALERIA APARECIDA BONFIM SOARES"]
+# --- GESTÃO DA CONEXÃO COM O BANCO DE DADOS ---
 
-TIPOS_OPCOES = ["WHATSAPP", "TELEFONE", "EMAIL"]
-ACOES_OPCOES = ["ATIVA", "PASSIVA"] 
-CONVENIO_TAREFAS_OPCOES = ["SOLICITAÇÃO", "LIBERAÇÃO", "DÚVIDAS"]
+@app.before_request
+def before_request():
+    """
+    Abre uma conexão com o banco de dados antes de cada requisição
+    e a armazena no contexto da aplicação (g).
+    """
+    g.db = database.get_db_connection()
 
-# --- MAPEAMENTO DE RESPONSÁVEL PARA FUNÇÃO ---
-FUNCAO_MAP = {
-    "LÍVIA VICTORIA LOURENÇO": "FOCAL",
-    "NATÁLIA BICHOFF": "FOCAL",
-    "DIEGO CORRENTE TANACA": "COORDENADOR",
-    "FABIO HENRIQUE DE PÁDUA": "AUDITOR",
-    "MIGUEL KENJI IWAMOTO": "AUDITOR",
-    "LUIZ FELIPHE MARROCO": "AUDITOR",
-    "VALERIA APARECIDA BONFIM SOARES": "CONVENIO"
-}
-
-# Detalhes da sua conexão com o banco de dados MySQL
-db_config = {
-    "user": "drogamais",
-    "password": "dB$MYSql@2119",
-    "host": "10.48.12.20",
-    "port": 3306,
-    "database": "dbSults",
-    "collation": "utf8mb4_general_ci"
-}
-
-def get_db_connection():
-    try:
-        conn = mysql.connector.connect(**db_config)
-        return conn
-    except Error as e:
-        print(f"Erro ao conectar ao MySQL: {e}")
-        return None
-
-def get_lojas_ativas():
-    """Busca no banco de dados todas as lojas com status ATIVO = 1 e número válido."""
-    conn = get_db_connection()
-    if conn is None:
-        return []
-    
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("USE drogamais")
-        query = """
-            SELECT LOJA_NUMERO, FANTASIA 
-            FROM tb_loja 
-            WHERE ATIVO = 1 AND LOJA_NUMERO IS NOT NULL AND LOJA_NUMERO > 0
-            ORDER BY LOJA_NUMERO
-        """
-        cursor.execute(query)
-        lojas = cursor.fetchall()
-        return lojas
-    except Error as e:
-        print(f"Erro ao buscar lojas: {e}")
-        return []
-    finally:
-        cursor.close()
-        conn.close()
+@app.teardown_request
+def teardown_request(exception):
+    """
+    Fecha a conexão com o banco de dados ao final de cada requisição,
+    se ela existir.
+    """
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 # --- ROTAS DA APLICAÇÃO ---
 
 @app.route('/')
 def index():
-    """ Rota principal que exibe o formulário de grade. """
     return render_template(
         'index.html', 
         tarefas=TAREFAS_OPCOES,
-        responsaveis=INDEX_RESPONSAVEIS_OPCOES, # Passa a lista sem a Valéria
+        responsaveis=INDEX_RESPONSAVEIS_OPCOES,
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
         active_page='index'
@@ -99,7 +50,6 @@ def index():
 
 @app.route('/convenio')
 def convenio():
-    """ Rota para a página de convênios. """
     return render_template(
         'convenio.html',
         tarefas=CONVENIO_TAREFAS_OPCOES,
@@ -109,94 +59,21 @@ def convenio():
         active_page='convenio'
     )
 
-@app.route('/salvar', methods=['POST'])
-def salvar_dados():
-    """ Rota que recebe os dados do formulário e salva no banco. """
-    data = request.form.get('data')
-    nome_responsavel = request.form.get('responsavel')
-    
-    tarefas = request.form.getlist('tarefa')
-    lojas = request.form.getlist('loja')
-    tipos = request.form.getlist('tipo')
-    acoes = request.form.getlist('acao')
-    assuntos = request.form.getlist('assunto')
-
-    if not data or not nome_responsavel:
-        flash('Os campos "Data" e "Responsável" são obrigatórios.', 'danger')
-        return redirect(request.referrer)
-
-    registros_para_inserir = []
-    
-    for i in range(len(lojas)):
-        if lojas[i]: 
-            if not tarefas[i] or not tipos[i] or not acoes[i]:
-                flash(f'Erro na Linha {i+1}: Os campos "Tarefa", "Loja", "Tipo" e "Ação" são obrigatórios.', 'danger')
-                return redirect(request.referrer)
-            
-            try:
-                loja_num = int(lojas[i])
-                if not (0 <= loja_num <= 999):
-                    flash(f'Erro na Linha {i+1}: O número da loja deve estar entre 0 e 999.', 'danger')
-                    return redirect(request.referrer)
-            except ValueError:
-                flash(f'Erro na Linha {i+1}: O valor da loja deve ser um número.', 'danger')
-                return redirect(request.referrer)
-            
-            chave_unica = str(uuid.uuid4())
-            funcao_atual = FUNCAO_MAP.get(nome_responsavel, None)
-
-            novo_registro = (
-                chave_unica,
-                data,
-                tarefas[i],
-                nome_responsavel,
-                funcao_atual,
-                loja_num,
-                tipos[i],
-                acoes[i],
-                assuntos[i] or None
-            )
-            registros_para_inserir.append(novo_registro)
-
-    if not registros_para_inserir:
-        flash('Nenhuma linha preenchida para salvar.', 'warning')
-        return redirect(request.referrer)
-
-    conn = get_db_connection()
-    if conn is None:
-        flash('Erro de conexão com o banco de dados.', 'danger')
-        return redirect(request.referrer)
-        
-    cursor = conn.cursor()
-    
-    sql_insert = """
-        INSERT INTO tb_atendimentos (chave_id, data, tarefa, responsavel, funcao, loja, tipo, acao, assunto)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-
-    try:
-        cursor.executemany(sql_insert, registros_para_inserir)
-        conn.commit()
-        flash(f'{cursor.rowcount} registros salvos com sucesso!', 'success')
-    except Error as e:
-        conn.rollback()
-        flash(f'Erro ao salvar os dados no banco: {e}', 'danger')
-    finally:
-        cursor.close()
-        conn.close()
-
-    return redirect(request.referrer)
-
+@app.route('/massa')
+def massa_dados():
+    lojas_ativas = database.get_lojas_ativas()
+    return render_template(
+        'massa.html', 
+        tarefas=TAREFAS_OPCOES,
+        responsaveis=RESPONSAVEIS_OPCOES,
+        tipos=TIPOS_OPCOES,
+        acoes=ACOES_OPCOES,
+        lojas=lojas_ativas,
+        active_page='massa'
+    )
 
 @app.route('/editar')
 def editar_dados():
-    """ Rota para exibir os dados para edição, agora com filtros. """
-    conn = get_db_connection()
-    if conn is None:
-        return "<h1>Erro: Não foi possível conectar ao banco de dados.</h1>"
-    
-    cursor = conn.cursor(dictionary=True)
-
     data_filtro = request.args.get('data_filtro')
     responsavel_filtro = request.args.get('responsavel')
 
@@ -217,12 +94,7 @@ def editar_dados():
     
     sql_query += " ORDER BY data DESC, chave_id DESC"
     
-    cursor.execute(sql_query, tuple(params))
-    atendimentos = cursor.fetchall()
-    
-    cursor.close()
-    conn.close()
-
+    atendimentos = database.get_atendimentos_para_editar(sql_query, params)
     data_corte = date.today() - timedelta(days=3)
 
     return render_template(
@@ -234,104 +106,51 @@ def editar_dados():
         tipos_opcoes=TIPOS_OPCOES,
         acoes_opcoes=ACOES_OPCOES,
         active_page='editar',
-        filtros={
-            'data_filtro': data_filtro,
-            'responsavel': responsavel_filtro
-        }
+        filtros={'data_filtro': data_filtro, 'responsavel': responsavel_filtro}
     )
 
-@app.route('/atualizar', methods=['POST'])
-def atualizar_dados():
-    """ Rota que recebe os dados do formulário de edição e atualiza no banco. """
-    selecionados = request.form.getlist('selecionado')
-
-    if not selecionados:
-        flash('Nenhum registro foi selecionado para atualização.', 'warning')
-        return redirect(url_for('editar_dados'))
-
-    conn = get_db_connection()
-    if conn is None:
-        flash('Erro de conexão com o banco de dados.', 'danger')
-        return redirect(url_for('editar_dados'))
+@app.route('/salvar', methods=['POST'])
+def salvar_dados():
+    data = request.form.get('data')
+    nome_responsavel = request.form.get('responsavel')
     
-    cursor = conn.cursor(dictionary=True)
-    
-    data_corte = date.today() - timedelta(days=3)
-    registros_para_atualizar = []
-    
-    for chave_id in selecionados:
-        cursor.execute("SELECT data FROM tb_atendimentos WHERE chave_id = %s", (chave_id,))
-        registro_original = cursor.fetchone()
-        
-        if not registro_original:
-            flash(f'Erro: Registro com chave {chave_id} não encontrado.', 'danger')
-            continue
+    if not data or not nome_responsavel:
+        flash('Os campos "Data" e "Responsável" são obrigatórios.', 'danger')
+        return redirect(request.referrer)
 
-        if registro_original['data'] < data_corte:
-            flash(f'Atenção: O registro de {registro_original["data"].strftime("%d/%m/%Y")} não pode ser alterado (mais de 3 dias).', 'warning')
-            continue
+    tarefas = request.form.getlist('tarefa')
+    lojas = request.form.getlist('loja')
+    tipos = request.form.getlist('tipo')
+    acoes = request.form.getlist('acao')
+    assuntos = request.form.getlist('assunto')
 
-        data = request.form.get(f'data_{chave_id}')
-        tarefa = request.form.get(f'tarefa_{chave_id}')
-        responsavel = request.form.get(f'responsavel_{chave_id}')
-        loja = request.form.get(f'loja_{chave_id}')
-        tipo = request.form.get(f'tipo_{chave_id}')
-        acao = request.form.get(f'acao_{chave_id}')
-        assunto = request.form.get(f'assunto_{chave_id}')
+    registros_para_inserir = []
+    for i in range(len(lojas)):
+        if lojas[i]: 
+            if not tarefas[i] or not tipos[i] or not acoes[i]:
+                flash(f'Erro na Linha {i+1}: Campos obrigatórios não preenchidos.', 'danger')
+                return redirect(request.referrer)
+            
+            registros_para_inserir.append((
+                str(uuid.uuid4()), data, tarefas[i], nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+                int(lojas[i]), tipos[i], acoes[i], assuntos[i] or None
+            ))
 
-        if not all([data, tarefa, responsavel, loja, tipo, acao]):
-             flash(f'Erro na linha com chave {chave_id}: Todos os campos, exceto "Assunto", são obrigatórios.', 'danger')
-             continue
+    if not registros_para_inserir:
+        flash('Nenhuma linha preenchida para salvar.', 'warning')
+        return redirect(request.referrer)
 
-        registros_para_atualizar.append((
-            data, tarefa, responsavel, int(loja), 
-            tipo, acao, assunto or None, 
-            chave_id
-        ))
-    
-    if registros_para_atualizar:
-        sql_update = """
-            UPDATE tb_atendimentos SET 
-                data = %s, tarefa = %s, responsavel = %s, loja = %s, 
-                tipo = %s, acao = %s, assunto = %s 
-            WHERE chave_id = %s
-        """
-        try:
-            update_cursor = conn.cursor()
-            update_cursor.executemany(sql_update, registros_para_atualizar)
-            conn.commit()
-            flash(f'{update_cursor.rowcount} registros atualizados com sucesso!', 'success')
-        except Error as e:
-            conn.rollback()
-            flash(f'Erro ao atualizar os dados: {e}', 'danger')
-        finally:
-            if 'update_cursor' in locals() and update_cursor:
-                update_cursor.close()
+    rowcount, error = database.save_new_atendimentos(registros_para_inserir)
+    if error:
+        flash(f'Erro ao salvar os dados no banco: {error}', 'danger')
     else:
-        flash('Nenhum registro foi modificado ou era válido para atualização.', 'info')
+        flash(f'{rowcount} registros salvos com sucesso!', 'success')
 
-    cursor.close()
-    conn.close()
+    return redirect(request.referrer)
 
-    return redirect(url_for('editar_dados'))
-
-@app.route('/massa')
-def massa_dados():
-    """ Rota que exibe o formulário de grade para inserção em massa. """
-    lojas_ativas = get_lojas_ativas()
-    return render_template(
-        'massa.html', 
-        tarefas=TAREFAS_OPCOES,
-        responsaveis=RESPONSAVEIS_OPCOES,
-        tipos=TIPOS_OPCOES,
-        acoes=ACOES_OPCOES,
-        lojas=lojas_ativas,
-        active_page='massa'
-    )
 
 @app.route('/salvar_massa', methods=['POST'])
 def salvar_dados_massa():
-    """ Rota que recebe os dados do formulário em massa e salva no banco. """
     data = request.form.get('data')
     tarefa = request.form.get('tarefa')
     nome_responsavel = request.form.get('responsavel')
@@ -340,57 +159,49 @@ def salvar_dados_massa():
     assunto = request.form.get('assunto')
     lojas_selecionadas = request.form.getlist('lojas')
 
-    if not all([data, tarefa, nome_responsavel, tipo, acao]):
-        flash('Todos os campos, exceto "Assunto" e a seleção de lojas, são obrigatórios.', 'danger')
+    if not all([data, tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
+        flash('Todos os campos e pelo menos uma loja devem ser preenchidos.', 'danger')
         return redirect(url_for('massa_dados'))
         
-    if not lojas_selecionadas:
-        flash('Nenhuma loja foi selecionada.', 'danger')
-        return redirect(url_for('massa_dados'))
+    registros_para_inserir = [
+        (str(uuid.uuid4()), data, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+         int(loja_num), tipo, acao, assunto or None)
+        for loja_num in lojas_selecionadas
+    ]
 
-    registros_para_inserir = []
-    
-    for loja_num_str in lojas_selecionadas:
-        loja_num = int(loja_num_str)
-        
-        chave_unica = str(uuid.uuid4())
-        funcao_atual = FUNCAO_MAP.get(nome_responsavel, None)
-
-        novo_registro = (
-            chave_unica, data, tarefa, nome_responsavel, funcao_atual,
-            loja_num, tipo, acao, assunto or None
-        )
-        registros_para_inserir.append(novo_registro)
-
-    if not registros_para_inserir:
-        flash('Nenhum dado válido para salvar.', 'danger')
-        return redirect(url_for('massa_dados'))
-
-    conn = get_db_connection()
-    if conn is None:
-        flash('Erro de conexão com o banco de dados.', 'danger')
-        return redirect(url_for('massa_dados'))
-        
-    cursor = conn.cursor()
-    
-    sql_insert = """
-        INSERT INTO tb_atendimentos (chave_id, data, tarefa, responsavel, funcao, loja, tipo, acao, assunto)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-
-    try:
-        cursor.executemany(sql_insert, registros_para_inserir)
-        conn.commit()
-        flash(f'{cursor.rowcount} registros salvos com sucesso!', 'success')
-    except Error as e:
-        conn.rollback()
-        flash(f'Erro ao salvar os dados no banco: {e}', 'danger')
-    finally:
-        cursor.close()
-        conn.close()
+    rowcount, error = database.save_new_atendimentos(registros_para_inserir)
+    if error:
+        flash(f'Erro ao salvar os dados no banco: {error}', 'danger')
+    else:
+        flash(f'{rowcount} registros salvos com sucesso!', 'success')
 
     return redirect(url_for('massa_dados'))
 
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/atualizar', methods=['POST'])
+def atualizar_dados():
+    selecionados = request.form.getlist('selecionado')
+    if not selecionados:
+        flash('Nenhum registro foi selecionado para atualização.', 'warning')
+        return redirect(url_for('editar_dados'))
+    
+    registros_para_atualizar = []
+    for chave_id in selecionados:
+        registros_para_atualizar.append((
+            request.form.get(f'data_{chave_id}'), request.form.get(f'tarefa_{chave_id}'),
+            request.form.get(f'responsavel_{chave_id}'), int(request.form.get(f'loja_{chave_id}')), 
+            request.form.get(f'tipo_{chave_id}'), request.form.get(f'acao_{chave_id}'),
+            request.form.get(f'assunto_{chave_id}') or None, 
+            chave_id
+        ))
+    
+    if registros_para_atualizar:
+        rowcount, error = database.update_atendimentos_no_banco(registros_para_atualizar)
+        if error:
+            flash(f'Erro ao atualizar os dados: {error}', 'danger')
+        else:
+            flash(f'{rowcount} registros atualizados com sucesso!', 'success')
+    else:
+        flash('Nenhum registro foi modificado.', 'info')
+        
+    return redirect(url_for('editar_dados'))

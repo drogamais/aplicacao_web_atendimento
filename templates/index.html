@@ -1,134 +1,82 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entrada de Dados</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div id="notification" class="notification"></div>
+{% extends "base.html" %}
 
-    <div id="confirm-modal" class="modal-overlay">
-        <div class="modal-content">
-            <p>Você tem certeza que deseja limpar todos os campos do formulário?</p>
-            <div class="modal-actions">
-                <button id="modal-btn-cancel" class="modal-button-cancel">Cancelar</button>
-                <button id="modal-btn-confirm" class="modal-button-confirm">OK</button>
+{% block title %}Entrada de Dados{% endblock %}
+
+{% block content %}
+    <h1>Entrada de Atendimentos</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('salvar_dados') }}" method="post" id="atendimento-form">
+        <div class="filter-form" style="margin-bottom: 25px;">
+            <div class="form-group">
+                <label for="data">Data:</label>
+                <input type="date" id="data" name="data" required>
+            </div>
+            <div class="form-group">
+                <label for="responsavel">Responsável:</label>
+                <select id="responsavel" name="responsavel" required>
+                    <option value="">Selecione...</option>
+                    {% for resp in responsaveis %}
+                    <option value="{{ resp }}">{{ resp }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
-    </div>
 
-    <div class="container">
-        <nav class="navbar">
-            <div class="dropdown">
-                <button onclick="toggleMenu()" class="dropbtn">Menu</button>
-                <div id="myDropdown" class="dropdown-content">
-                    <a href="{{ url_for('index') }}" class="{{ 'active' if active_page == 'index' else '' }}">Inserção Padrão</a>
-                    <a href="{{ url_for('convenio') }}" class="{{ 'active' if active_page == 'convenio' else '' }}">Convênio</a>
-                    <a href="{{ url_for('massa_dados') }}" class="{{ 'active' if active_page == 'massa' else '' }}">Inserir em Massa</a>
-                    <a href="{{ url_for('editar_dados') }}" class="{{ 'active' if active_page == 'editar' else '' }}">Editar Lançamentos</a>
-                </div>
-            </div>
-        </nav>
-
-        <h1>Entrada de Atendimentos</h1>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+        <table id="index-table">
+            <thead>
+                <tr>
+                    <th class="th-tarefa">Tarefa</th>
+                    <th class="th-loja">Loja (0-999)</th>
+                    <th class="th-tipo">Tipo</th>
+                    <th class="th-acao">Ação</th>
+                    <th class="th-assunto">Assunto (Opcional)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in range(10) %}
+                <tr>
+                    <td>
+                        <select name="tarefa">
+                            <option value="">Selecione...</option>
+                            {% for tarefa in tarefas %}
+                            <option value="{{ tarefa }}">{{ tarefa }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="number" name="loja" min="0" max="999"></td>
+                    <td>
+                        <select name="tipo">
+                            <option value="">Selecione...</option>
+                            {% for tipo in tipos %}
+                            <option value="{{ tipo }}">{{ tipo }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="acao">
+                            <option value="">Selecione...</option>
+                            {% for acao in acoes %}
+                            <option value="{{ acao }}">{{ acao }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" name="assunto" maxlength="255"></td>
+                </tr>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <form action="{{ url_for('salvar_dados') }}" method="post" id="atendimento-form">
-            
-            <div class="filter-form" style="margin-bottom: 25px;">
-                <div class="form-group">
-                    <label for="data">Data:</label>
-                    <input type="date" id="data" name="data" required>
-                </div>
-                <div class="form-group">
-                    <label for="responsavel">Responsável:</label>
-                    <select id="responsavel" name="responsavel" required>
-                        <option value="">Selecione...</option>
-                        {% for resp in responsaveis %}
-                        <option value="{{ resp }}">{{ resp }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <table id="index-table">
-                <thead>
-                    <tr>
-                        <th class="th-tarefa">Tarefa</th>
-                        <th class="th-loja">Loja (0-999)</th>
-                        <th class="th-tipo">Tipo</th>
-                        <th class="th-acao">Ação</th>
-                        <th class="th-assunto">Assunto (Opcional)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for i in range(10) %}
-                    <tr>
-                        <td>
-                            <select name="tarefa">
-                                <option value="">Selecione...</option>
-                                {% for tarefa in tarefas %}
-                                <option value="{{ tarefa }}">{{ tarefa }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="number" name="loja" min="0" max="999"></td>
-                        <td>
-                             <select name="tipo">
-                                <option value="">Selecione...</option>
-                                {% for tipo in tipos %}
-                                <option value="{{ tipo }}">{{ tipo }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="acao">
-                                <option value="">Selecione...</option>
-                                {% for acao in acoes %}
-                                <option value="{{ acao }}">{{ acao }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" name="assunto" maxlength="255"></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <button type="submit">Salvar Dados</button>
-        </form>
-        
-        <button id="btn-limpar" class="button-danger">Limpar Formulário</button>
-    </div>
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-        /* Função para mostrar/esconder o dropdown */
-        function toggleMenu() {
-            document.getElementById("myDropdown").classList.toggle("show");
-        }
-
-        // Fecha o dropdown se o usuário clicar fora dele
-        window.onclick = function(event) {
-            if (!event.target.matches('.dropbtn')) {
-                var dropdowns = document.getElementsByClassName("dropdown-content");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    var openDropdown = dropdowns[i];
-                    if (openDropdown.classList.contains('show')) {
-                        openDropdown.classList.remove('show');
-                    }
-                }
-            }
-        }
-    </script>
-
-</body>
-</html>
+            </tbody>
+        </table>
+        <button type="submit">Salvar Dados</button>
+    </form>
+    
+    <button id="btn-limpar" class="button-danger">Limpar Formulário</button>
+{% endblock %} {% block scripts %}
+    <script src="{{ url_for('static', filename='js/formHandler.js') }}"></script>
+{% endblock %}

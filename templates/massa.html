@@ -1,154 +1,93 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entrada em Massa</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <nav class="navbar">
-            <div class="dropdown">
-                <button onclick="toggleMenu()" class="dropbtn">Menu</button>
-                <div id="myDropdown" class="dropdown-content">
-                    <a href="{{ url_for('index') }}">Inserção Padrão</a>
-                    <a href="{{ url_for('convenio') }}">Convênio</a>
-                    <a href="{{ url_for('massa_dados') }}">Inserir em Massa</a>
-                    <a href="{{ url_for('editar_dados') }}">Editar Lançamentos</a>
-                </div>
-            </div>
-        </nav>
-        
-        <h1>Entrada de Atendimentos em Massa</h1>
+{% extends "base.html" %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+{% block title %}Entrada em Massa{% endblock %}
+
+{% block content %}
+    <h1>Entrada de Atendimentos em Massa</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('salvar_dados_massa') }}" method="post" id="atendimento-massa-form">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Tarefa</th>
+                    <th>Responsável</th>
+                    <th>Tipo</th>
+                    <th>Ação</th>
+                    <th>Assunto (Opcional)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="date" name="data" required></td>
+                    <td>
+                        <select name="tarefa" required>
+                            <option value="">Selecione...</option>
+                            {% for tarefa in tarefas %}
+                            <option value="{{ tarefa }}">{{ tarefa }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="responsavel" required>
+                            <option value="">Selecione...</option>
+                            {% for resp in responsaveis %}
+                            <option value="{{ resp }}">{{ resp }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                            <select name="tipo" required>
+                            <option value="">Selecione...</option>
+                            {% for tipo in tipos %}
+                            <option value="{{ tipo }}">{{ tipo }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="acao" required>
+                            <option value="">Selecione...</option>
+                            {% for acao in acoes %}
+                            <option value="{{ acao }}">{{ acao }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" name="assunto" maxlength="255"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="lojas-container">
+            <h2>Selecione as Lojas</h2>
+            <div class="lojas-actions">
+                <input type="checkbox" id="selecionar-todas">
+                <label for="selecionar-todas">Selecionar Todas</label>
+            </div>
+            <div class="lojas-checklist">
+                {% for loja in lojas %}
+                <div class="loja-item">
+                    <input type="checkbox" name="lojas" value="{{ loja.LOJA_NUMERO }}" id="loja_{{ loja.LOJA_NUMERO }}">
+                    <label for="loja_{{ loja.LOJA_NUMERO }}">{{ loja.LOJA_NUMERO }} - {{ loja.FANTASIA }}</label>
+                </div>
+                {% else %}
+                <p>Nenhuma loja ativa encontrada no banco de dados.</p>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <form action="{{ url_for('salvar_dados_massa') }}" method="post" id="atendimento-massa-form">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Tarefa</th>
-                        <th>Responsável</th>
-                        <th>Tipo</th>
-                        <th>Ação</th>
-                        <th>Assunto (Opcional)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><input type="date" name="data" required></td>
-                        <td>
-                            <select name="tarefa" required>
-                                <option value="">Selecione...</option>
-                                {% for tarefa in tarefas %}
-                                <option value="{{ tarefa }}">{{ tarefa }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="responsavel" required>
-                                <option value="">Selecione...</option>
-                                {% for resp in responsaveis %}
-                                <option value="{{ resp }}">{{ resp }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                             <select name="tipo" required>
-                                <option value="">Selecione...</option>
-                                {% for tipo in tipos %}
-                                <option value="{{ tipo }}">{{ tipo }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="acao" required>
-                                <option value="">Selecione...</option>
-                                {% for acao in acoes %}
-                                <option value="{{ acao }}">{{ acao }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" name="assunto" maxlength="255"></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="lojas-container">
-                <h2>Selecione as Lojas</h2>
-                <div class="lojas-actions">
-                    <input type="checkbox" id="selecionar-todas">
-                    <label for="selecionar-todas">Selecionar Todas</label>
-                </div>
-                <div class="lojas-checklist">
-                    {% for loja in lojas %}
-                    <div class="loja-item">
-                        <input type="checkbox" name="lojas" value="{{ loja.LOJA_NUMERO }}" id="loja_{{ loja.LOJA_NUMERO }}">
-                        <label for="loja_{{ loja.LOJA_NUMERO }}">{{ loja.LOJA_NUMERO }} - {{ loja.FANTASIA }}</label>
-                    </div>
-                    {% else %}
-                    <p>Nenhuma loja ativa encontrada no banco de dados.</p>
-                    {% endfor %}
-                </div>
             </div>
+        </div>
 
-            <button type="submit">Salvar Dados em Massa</button>
-        </form>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectAllCheckbox = document.getElementById('selecionar-todas');
-            const storeCheckboxes = document.querySelectorAll('.lojas-checklist input[type="checkbox"]');
-            const storeItems = document.querySelectorAll('.lojas-checklist .loja-item');
-
-            // Lógica para o "Selecionar Todas"
-            selectAllCheckbox.addEventListener('change', function() {
-                storeCheckboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
-                });
-            });
-
-            // Lógica para tornar a linha inteira clicável
-            storeItems.forEach(item => {
-                item.addEventListener('click', function(event) {
-                    // Impede que o clique no label acione o evento duas vezes
-                    if (event.target.tagName === 'LABEL' || event.target.tagName === 'INPUT') {
-                        return;
-                    }
-                    
-                    const checkbox = this.querySelector('input[type="checkbox"]');
-                    checkbox.checked = !checkbox.checked;
-                });
-            });
-        });
-    </script>
-    <script>
-        /* Função para mostrar/esconder o dropdown */
-        function toggleMenu() {
-            document.getElementById("myDropdown").classList.toggle("show");
-        }
-
-        // Fecha o dropdown se o usuário clicar fora dele
-        window.onclick = function(event) {
-            if (!event.target.matches('.dropbtn')) {
-                var dropdowns = document.getElementsByClassName("dropdown-content");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    var openDropdown = dropdowns[i];
-                    if (openDropdown.classList.contains('show')) {
-                        openDropdown.classList.remove('show');
-                    }
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+        <button type="submit">Salvar Dados em Massa</button>
+    </form>
+    
+    <button id="btn-limpar" class="button-danger">Limpar Formulário</button>
+{% endblock %} {% block scripts %}
+    <script src="{{ url_for('static', filename='js/massaPage.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/formHandler.js') }}"></script>
+{% endblock %}

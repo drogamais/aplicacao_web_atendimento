@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}App de Atendimentos{% endblock %}</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tables.css') }}">
+</head>
+<body>
+    <div id="notification" class="notification"></div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <p>Você tem certeza que deseja limpar todos os campos do formulário?</p>
+            <div class="modal-actions">
+                <button id="modal-btn-cancel" class="modal-button-cancel">Cancelar</button>
+                <button id="modal-btn-confirm" class="modal-button-confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <nav class="navbar">
+            <div class="dropdown">
+                <button class="dropbtn">Menu</button>
+                <div id="myDropdown" class="dropdown-content">
+                    <a href="{{ url_for('index') }}" class="{{ 'active' if active_page == 'index' else '' }}">Inserção Padrão</a>
+                    <a href="{{ url_for('convenio') }}" class="{{ 'active' if active_page == 'convenio' else '' }}">Convênio</a>
+                    <a href="{{ url_for('massa_dados') }}" class="{{ 'active' if active_page == 'massa' else '' }}">Inserir em Massa</a>
+                    <a href="{{ url_for('editar_dados') }}" class="{{ 'active' if active_page == 'editar' else '' }}">Editar Lançamentos</a>
+                </div>
+            </div>
+        </nav>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.App) {
+                for (const module in App) {
+                    if (App[module].init) {
+                        App[module].init();
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
