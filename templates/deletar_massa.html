@@ -27,6 +27,7 @@
                     <th>Data</th>
                     <th>Tarefa</th>
                     <th>Responsável</th>
+                    <th>Nº Lojas</th>
                     <th>Assunto</th>
                 </tr>
             </thead>
@@ -39,12 +40,13 @@
                     <td>{{ atendimento.data.strftime('%d/%m/%Y') }}</td>
                     <td>{{ atendimento.tarefa }}</td>
                     <td>{{ atendimento.responsavel }}</td>
+                    <td>{{ atendimento.total_lojas }}</td>
                     <td>{{ atendimento.assunto }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <button type="submit" class="button-danger" style="width: 100%; max-width: none;">Deletar Selecionados</button>
+        <button type="submit" class="button-danger" style="width: 100%; max-width: none; margin-top: 20px;">Deletar Selecionados</button>
     </form>
     {% else %}
     <p>Nenhum registro de lançamento em massa encontrado.</p>

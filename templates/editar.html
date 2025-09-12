@@ -59,7 +59,8 @@
 
                 <tr>
                     <td>
-                        {% if is_editable %}
+                        {# Apenas mostra o checkbox se for editável PELA DATA E se a loja NÃO FOR -1 #}
+                        {% if is_editable and atendimento.loja != -1 %}
                             <input type="checkbox" name="selecionado" value="{{ atendimento.chave_id }}" class="edit-checkbox">
                         {% endif %}
                     </td>
@@ -94,7 +95,9 @@
                             {% endfor %}
                         </select>
                     </td>
-                    <td><input type="text" name="assunto_{{ atendimento.chave_id }}" value="{{ atendimento.assunto or '' }}" maxlength="255" disabled></td>
+                    <td class="assunto-cell" title="Clique para ver o assunto completo" onclick="if (this.querySelector('input').disabled && this.querySelector('input').value) { alert(this.querySelector('input').value); }">
+                        <input type="text" name="assunto_{{ atendimento.chave_id }}" value="{{ atendimento.assunto or '' }}" maxlength="255" disabled>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -111,21 +111,52 @@ def insert_atendimentos_massa(cursor, registros):
 
 def get_atendimentos_massa_para_deletar():
     """
-    Busca os registros de resumo (loja = -1) da tabela de atendimentos.
+    Busca os registros de resumo e, em uma segunda etapa, conta as lojas associadas.
+    Este método é mais robusto e evita problemas de compatibilidade com SQL.
     """
     conn = g.db
-    if conn is None: return []
-    
+    if conn is None:
+        return []
+
     cursor = conn.cursor(dictionary=True)
     try:
-        query = "SELECT * FROM tb_atendimentos WHERE loja = -1 ORDER BY data DESC, chave_id DESC"
-        cursor.execute(query)
-        return cursor.fetchall()
+        # Etapa 1: Buscar os registros de resumo. Esta query é simples e confiável.
+        query_resumos = "SELECT * FROM tb_atendimentos WHERE loja = -1 ORDER BY data DESC, chave_id DESC"
+        cursor.execute(query_resumos)
+        atendimentos = cursor.fetchall()
+
+        if not atendimentos:
+            return []
+
+        # Etapa 2: Contar as lojas para cada registro de resumo encontrado.
+        ids_massa = [a['chave_id'] for a in atendimentos]
+        
+        # Prepara a query de contagem para todos os IDs de uma vez
+        format_strings = ','.join(['%s'] * len(ids_massa))
+        query_contagem = f"""
+            SELECT id_massa, COUNT(chave_id) as total_lojas 
+            FROM tb_atendimentos_massa 
+            WHERE id_massa IN ({format_strings}) 
+            GROUP BY id_massa
+        """
+        cursor.execute(query_contagem, tuple(ids_massa))
+        contagens = cursor.fetchall()
+
+        # Mapeia os IDs para suas contagens para acesso rápido
+        mapa_contagens = {c['id_massa']: c['total_lojas'] for c in contagens}
+
+        # Adiciona a contagem a cada registro de atendimento
+        for atendimento in atendimentos:
+            atendimento['total_lojas'] = mapa_contagens.get(atendimento['chave_id'], 0)
+
+        return atendimentos
+
     except Error as e:
         print(f"Erro ao buscar atendimentos em massa para deletar: {e}")
         return []
     finally:
-        cursor.close()
+        if cursor:
+            cursor.close()
 
 def delete_atendimentos_massa(ids_para_deletar):
     """

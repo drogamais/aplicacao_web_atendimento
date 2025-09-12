@@ -228,9 +228,10 @@ def salvar_dados_massa():
     ]
 
     # Cria o registro "resumo" para a tb_atendimentos, usando o ID do lote como chave_id
+    # O assunto agora é o que foi digitado no formulário
     registro_sumario = [(
         id_massa, data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
-        -1, tipo, acao, f"Lançamento em massa para {len(lojas_selecionadas)} lojas."
+        -1, tipo, acao, assunto or None
     )]
 
     conn = g.db

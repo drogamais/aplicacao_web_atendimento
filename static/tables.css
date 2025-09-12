@@ -37,3 +37,8 @@ th {
 .th-assunto {
     width: 48%;
 }
+
+/* Célula de assunto clicável na página de edição */
+.assunto-cell {
+    cursor: pointer;
+}
