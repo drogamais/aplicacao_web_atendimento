@@ -59,8 +59,8 @@
 
                 <tr>
                     <td>
-                        {# Apenas mostra o checkbox se for editável PELA DATA E se a loja NÃO FOR -1 #}
-                        {% if is_editable and atendimento.loja != -1 %}
+                        {# Apenas mostra o checkbox se for editável PELA DATA e se a ORIGEM for 'normal' #}
+                        {% if is_editable and atendimento.origem == 'normal' %}
                             <input type="checkbox" name="selecionado" value="{{ atendimento.chave_id }}" class="edit-checkbox">
                         {% endif %}
                     </td>

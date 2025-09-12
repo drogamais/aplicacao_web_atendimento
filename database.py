@@ -4,6 +4,7 @@ import mysql.connector
 from mysql.connector import Error
 from flask import g  # Importa o 'g', o contexto global da requisição
 from config import DB_CONFIG
+from datetime import date, timedelta  # ADICIONE ESTA LINHA
 
 def get_db_connection():
     """Cria e retorna uma NOVA conexão com o banco de dados."""
@@ -65,28 +66,6 @@ def get_atendimentos_para_editar(sql_query, params):
         return []
     finally:
         cursor.close()
-
-def update_atendimentos_no_banco(registros):
-    """Atualiza atendimentos usando a conexão da requisição atual (g.db)."""
-    conn = g.db
-    if conn is None: return 0, "Erro de conexão com o banco de dados."
-    
-    update_cursor = conn.cursor()
-    sql_update = """
-        UPDATE tb_atendimentos SET 
-            data = %s, tarefa = %s, responsavel = %s, loja = %s, 
-            tipo = %s, acao = %s, assunto = %s 
-        WHERE chave_id = %s
-    """
-    try:
-        update_cursor.executemany(sql_update, registros)
-        conn.commit()
-        return update_cursor.rowcount, None
-    except Error as e:
-        conn.rollback()
-        return 0, str(e)
-    finally:
-        update_cursor.close()
 
 def insert_atendimentos(cursor, registros):
     """Prepara e executa a inserção para a tabela tb_atendimentos."""

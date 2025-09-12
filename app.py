@@ -104,34 +104,53 @@ def massa_dados():
         max_date=max_date.isoformat()
     )
 
+
 @app.route('/editar')
 def editar_dados():
     data_filtro = request.args.get('data_filtro')
     responsavel_filtro = request.args.get('responsavel')
 
-    sql_query = "SELECT * FROM tb_atendimentos WHERE 1=1"
+    # Query base para atendimentos normais (não inclui resumos de massa)
+    query_normal = "SELECT chave_id, data, tarefa, responsavel, loja, tipo, acao, assunto, 'normal' as origem FROM tb_atendimentos WHERE loja <> -1"
+    
+    # Query base para atendimentos em massa
+    query_massa = "SELECT chave_id, data, tarefa, responsavel, loja, tipo, acao, assunto, 'massa' as origem FROM tb_atendimentos_massa WHERE 1=1"
+
     params = []
+    where_clauses = ""
 
     if data_filtro:
-        sql_query += " AND data = %s"
+        where_clauses += " AND data = %s"
         params.append(data_filtro)
-    elif DATE_FILTER_ENABLED: # O filtro padrão da página de edição também obedece à flag
+    elif DATE_FILTER_ENABLED:
         tres_dias_atras = date.today() - timedelta(days=3)
-        sql_query += " AND data >= %s"
+        where_clauses += " AND data >= %s"
         params.append(tres_dias_atras)
 
     if responsavel_filtro:
-        sql_query += " AND responsavel = %s"
+        where_clauses += " AND responsavel = %s"
         params.append(responsavel_filtro)
+
+    # Finaliza as strings das queries
+    sql_query_normal = query_normal + where_clauses
+    sql_query_massa = query_massa + where_clauses
     
-    sql_query += " ORDER BY data DESC, chave_id DESC"
+    # Executa cada consulta separadamente
+    atendimentos_normal = database.get_atendimentos_para_editar(sql_query_normal, params)
+    atendimentos_massa = database.get_atendimentos_para_editar(sql_query_massa, params)
     
-    atendimentos = database.get_atendimentos_para_editar(sql_query, params)
+    # Combina as duas listas de resultados
+    todos_atendimentos = atendimentos_normal + atendimentos_massa
+    
+    # Ordena a lista combinada pela data, do mais recente para o mais antigo
+    if todos_atendimentos:
+        todos_atendimentos.sort(key=lambda x: x['data'], reverse=True)
+
     data_corte = date.today() - timedelta(days=14)
 
     return render_template(
         'editar.html', 
-        atendimentos=atendimentos,
+        atendimentos=todos_atendimentos,
         data_corte=data_corte,
         tarefas_opcoes=TAREFAS_OPCOES,
         responsaveis_opcoes=RESPONSAVEIS_OPCOES,
