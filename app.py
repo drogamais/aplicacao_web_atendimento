@@ -84,7 +84,7 @@ def editar_dados():
         sql_query += " AND data = %s"
         params.append(data_filtro)
     else:
-        tres_dias_atras = date.today() - timedelta(days=1)
+        tres_dias_atras = date.today() - timedelta(days=3)
         sql_query += " AND data >= %s"
         params.append(tres_dias_atras)
 
@@ -95,7 +95,7 @@ def editar_dados():
     sql_query += " ORDER BY data DESC, chave_id DESC"
     
     atendimentos = database.get_atendimentos_para_editar(sql_query, params)
-    data_corte = date.today() - timedelta(days=3)
+    data_corte = date.today() - timedelta(days=14)
 
     return render_template(
         'editar.html', 
