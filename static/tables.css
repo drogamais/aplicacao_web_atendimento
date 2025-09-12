@@ -42,3 +42,8 @@ th {
 .assunto-cell {
     cursor: pointer;
 }
+
+/* Permite que o clique na célula de assunto funcione mesmo sobre o input desabilitado */
+.assunto-cell input[disabled] {
+    pointer-events: none;
+}

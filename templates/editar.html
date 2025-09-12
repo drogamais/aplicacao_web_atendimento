@@ -95,7 +95,7 @@
                             {% endfor %}
                         </select>
                     </td>
-                    <td class="assunto-cell" title="Clique para ver o assunto completo" onclick="if (this.querySelector('input').disabled && this.querySelector('input').value) { alert(this.querySelector('input').value); }">
+                    <td class="assunto-cell" title="Clique para ver o assunto completo">
                         <input type="text" name="assunto_{{ atendimento.chave_id }}" value="{{ atendimento.assunto or '' }}" maxlength="255" disabled>
                     </td>
                 </tr>
