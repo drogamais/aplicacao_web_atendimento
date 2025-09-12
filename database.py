@@ -87,3 +87,21 @@ def update_atendimentos_no_banco(registros):
         return 0, str(e)
     finally:
         update_cursor.close()
+
+def insert_atendimentos(cursor, registros):
+    """Prepara e executa a inserção para a tabela tb_atendimentos."""
+    sql_insert = """
+        INSERT INTO tb_atendimentos (chave_id, data, tarefa, responsavel, funcao, loja, tipo, acao, assunto)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    cursor.executemany(sql_insert, registros)
+    return cursor.rowcount
+
+def insert_atendimentos_massa(cursor, registros):
+    """Prepara e executa a inserção para a tabela tb_atendimentos_massa."""
+    sql_insert = """
+        INSERT INTO tb_atendimentos_massa (chave_id, data, tarefa, responsavel, funcao, loja, tipo, acao, assunto)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    cursor.executemany(sql_insert, registros)
+    return cursor.rowcount

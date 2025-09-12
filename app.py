@@ -3,6 +3,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, g
 import uuid
 from datetime import date, timedelta
+from mysql.connector import Error
 
 # Importando de nossos novos módulos
 import database
@@ -174,9 +175,11 @@ def salvar_dados():
     return redirect(request.referrer)
 
 
+# aplicacao_web_atendimento/app.py
+
 @app.route('/salvar_massa', methods=['POST'])
 def salvar_dados_massa():
-    data_str = request.form.get('data')
+    data = request.form.get('data')
     tarefa = request.form.get('tarefa')
     nome_responsavel = request.form.get('responsavel')
     tipo = request.form.get('tipo')
@@ -184,33 +187,64 @@ def salvar_dados_massa():
     assunto = request.form.get('assunto')
     lojas_selecionadas = request.form.getlist('lojas')
 
-    if not all([data_str, tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
+    if not all([data, tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
         flash('Todos os campos e pelo menos uma loja devem ser preenchidos.', 'danger')
         return redirect(url_for('massa_dados'))
 
-    # Validação da data
+    # Validação da data (se você removeu, pode remover este bloco)
     try:
-        data_selecionada = date.fromisoformat(data_str)
-        today = date.today()
-        three_days_ago = today - timedelta(days=3)
-        if not (three_days_ago <= data_selecionada <= today):
-            flash('A data de lançamento deve estar entre hoje e, no máximo, 3 dias atrás.', 'danger')
+        data_selecionada = date.fromisoformat(data)
+        if data_selecionada > date.today():
+            flash('A data de lançamento não pode ser no futuro.', 'danger')
             return redirect(url_for('massa_dados'))
-    except ValueError:
+    except (ValueError, TypeError):
         flash('Formato de data inválido.', 'danger')
         return redirect(url_for('massa_dados'))
         
-    registros_para_inserir = [
-        (str(uuid.uuid4()), data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+    # --- Nova Lógica de Inserção ---
+
+    # 1. Prepara os registros individuais para a tabela tb_atendimentos_massa
+    registros_para_massa = [
+        (str(uuid.uuid4()), data, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
          int(loja_num), tipo, acao, assunto or None)
         for loja_num in lojas_selecionadas
     ]
 
-    rowcount, error = database.save_new_atendimentos(registros_para_inserir)
-    if error:
-        flash(f'Erro ao salvar os dados no banco: {error}', 'danger')
-    else:
-        flash(f'{rowcount} registros salvos com sucesso!', 'success')
+    # 2. Prepara o registro de resumo para a tabela tb_atendimentos
+    registro_sumario = [(
+        str(uuid.uuid4()), data, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+        -1,  # Loja -1 para indicar inserção em massa
+        tipo, acao, assunto or None
+    )]
+
+    # 3. Executa as inserções como uma transação
+    conn = g.db
+    if conn is None:
+        flash('Erro de conexão com o banco de dados.', 'danger')
+        return redirect(url_for('massa_dados'))
+
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        
+        # Insere na nova tabela de massa
+        rowcount_massa = database.insert_atendimentos_massa(cursor, registros_para_massa)
+        
+        # Insere o resumo na tabela principal
+        database.insert_atendimentos(cursor, registro_sumario)
+
+        # Se tudo correu bem, comita a transação
+        conn.commit()
+
+        flash(f'{rowcount_massa} registros salvos com sucesso na inserção em massa!', 'success')
+
+    except Error as e:
+        if conn:
+            conn.rollback() # Reverte todas as alterações em caso de erro
+        flash(f'Erro ao salvar os dados no banco: {e}', 'danger')
+    finally:
+        if cursor:
+            cursor.close()
 
     return redirect(url_for('massa_dados'))
 
