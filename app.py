@@ -120,9 +120,12 @@ def editar_dados():
     where_clauses = ""
 
     if data_filtro:
+        # Se o usuário está filtrando por uma data, usamos a data que ele escolheu.
         where_clauses += " AND data = %s"
         params.append(data_filtro)
-    elif DATE_FILTER_ENABLED:
+    else:
+        # Se o usuário ACABOU de entrar na página (sem filtro de data),
+        # aplicamos o padrão de mostrar apenas os últimos 3 dias.
         tres_dias_atras = date.today() - timedelta(days=3)
         where_clauses += " AND data >= %s"
         params.append(tres_dias_atras)
