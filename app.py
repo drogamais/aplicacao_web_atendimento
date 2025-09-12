@@ -10,7 +10,8 @@ import database
 from config import SECRET_KEY
 from constants import (
     TAREFAS_OPCOES, INDEX_RESPONSAVEIS_OPCOES, RESPONSAVEIS_OPCOES,
-    TIPOS_OPCOES, ACOES_OPCOES, CONVENIO_TAREFAS_OPCOES, FUNCAO_MAP
+    TIPOS_OPCOES, ACOES_OPCOES, CONVENIO_TAREFAS_OPCOES, FUNCAO_MAP,
+    DATE_FILTER_ENABLED  # Importamos a nossa nova "chave"
 )
 
 app = Flask(__name__)
@@ -20,28 +21,48 @@ app.secret_key = SECRET_KEY
 
 @app.before_request
 def before_request():
-    """
-    Abre uma conexão com o banco de dados antes de cada requisição
-    e a armazena no contexto da aplicação (g).
-    """
     g.db = database.get_db_connection()
 
 @app.teardown_request
 def teardown_request(exception):
-    """
-    Fecha a conexão com o banco de dados ao final de cada requisição,
-    se ela existir.
-    """
     db = g.pop('db', None)
     if db is not None:
         db.close()
+
+# --- FUNÇÃO AUXILIAR DE VALIDAÇÃO DE DATA ---
+
+def get_date_rules():
+    """Retorna as datas mínima e máxima com base na feature flag."""
+    today = date.today()
+    min_date_obj = None
+    if DATE_FILTER_ENABLED:
+        min_date_obj = today - timedelta(days=3)
+    return min_date_obj, today
+
+def is_valid_date(date_str):
+    """Verifica se a data está dentro do intervalo permitido pela feature flag."""
+    if not date_str:
+        return False, "O campo 'Data' é obrigatório."
+    
+    try:
+        selected_date = date.fromisoformat(date_str)
+        min_date, max_date = get_date_rules()
+
+        if selected_date > max_date:
+            return False, "A data de lançamento não pode ser no futuro."
+        
+        if DATE_FILTER_ENABLED and selected_date < min_date:
+            return False, f"A data não pode ser anterior a {min_date.strftime('%d/%m/%Y')}."
+
+        return True, None
+    except (ValueError, TypeError):
+        return False, "Formato de data inválido."
 
 # --- ROTAS DA APLICAÇÃO ---
 
 @app.route('/')
 def index():
-    today = date.today()
-    three_days_ago = today - timedelta(days=3)
+    min_date, max_date = get_date_rules()
     return render_template(
         'index.html',
         tarefas=TAREFAS_OPCOES,
@@ -49,15 +70,13 @@ def index():
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
         active_page='index',
-        #min_date=three_days_ago.isoformat(),
-        min_date=None,
-        max_date=today.isoformat()
+        min_date=min_date.isoformat() if min_date else None,
+        max_date=max_date.isoformat()
     )
 
 @app.route('/convenio')
 def convenio():
-    today = date.today()
-    three_days_ago = today - timedelta(days=3)
+    min_date, max_date = get_date_rules()
     return render_template(
         'convenio.html',
         tarefas=CONVENIO_TAREFAS_OPCOES,
@@ -65,14 +84,13 @@ def convenio():
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
         active_page='convenio',
-        min_date=three_days_ago.isoformat(),
-        max_date=today.isoformat()
+        min_date=min_date.isoformat() if min_date else None,
+        max_date=max_date.isoformat()
     )
 
 @app.route('/massa')
 def massa_dados():
-    today = date.today()
-    three_days_ago = today - timedelta(days=3)
+    min_date, max_date = get_date_rules()
     lojas_ativas = database.get_lojas_ativas()
     return render_template(
         'massa.html',
@@ -82,8 +100,8 @@ def massa_dados():
         acoes=ACOES_OPCOES,
         lojas=lojas_ativas,
         active_page='massa',
-        min_date=three_days_ago.isoformat(),
-        max_date=today.isoformat()
+        min_date=min_date.isoformat() if min_date else None,
+        max_date=max_date.isoformat()
     )
 
 @app.route('/editar')
@@ -97,7 +115,7 @@ def editar_dados():
     if data_filtro:
         sql_query += " AND data = %s"
         params.append(data_filtro)
-    else:
+    elif DATE_FILTER_ENABLED: # O filtro padrão da página de edição também obedece à flag
         tres_dias_atras = date.today() - timedelta(days=3)
         sql_query += " AND data >= %s"
         params.append(tres_dias_atras)
@@ -128,20 +146,13 @@ def salvar_dados():
     data_str = request.form.get('data')
     nome_responsavel = request.form.get('responsavel')
     
-    if not data_str or not nome_responsavel:
-        flash('Os campos "Data" e "Responsável" são obrigatórios.', 'danger')
+    if not nome_responsavel:
+        flash('O campo "Responsável" é obrigatório.', 'danger')
         return redirect(request.referrer)
 
-    # Validação da data
-    try:
-        data_selecionada = date.fromisoformat(data_str)
-        today = date.today()
-        three_days_ago = today - timedelta(days=3)
-        if not (three_days_ago <= data_selecionada <= today):
-            flash('A data de lançamento deve estar entre hoje e, no máximo, 3 dias atrás.', 'danger')
-            return redirect(request.referrer)
-    except ValueError:
-        flash('Formato de data inválido.', 'danger')
+    is_valid, error_msg = is_valid_date(data_str)
+    if not is_valid:
+        flash(error_msg, 'danger')
         return redirect(request.referrer)
 
     tarefas = request.form.getlist('tarefa')
@@ -174,12 +185,9 @@ def salvar_dados():
 
     return redirect(request.referrer)
 
-
-# aplicacao_web_atendimento/app.py
-
 @app.route('/salvar_massa', methods=['POST'])
 def salvar_dados_massa():
-    data = request.form.get('data')
+    data_str = request.form.get('data')
     tarefa = request.form.get('tarefa')
     nome_responsavel = request.form.get('responsavel')
     tipo = request.form.get('tipo')
@@ -187,37 +195,26 @@ def salvar_dados_massa():
     assunto = request.form.get('assunto')
     lojas_selecionadas = request.form.getlist('lojas')
 
-    if not all([data, tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
-        flash('Todos os campos e pelo menos uma loja devem ser preenchidos.', 'danger')
+    is_valid, error_msg = is_valid_date(data_str)
+    if not is_valid:
+        flash(error_msg, 'danger')
         return redirect(url_for('massa_dados'))
 
-    # Validação da data (se você removeu, pode remover este bloco)
-    try:
-        data_selecionada = date.fromisoformat(data)
-        if data_selecionada > date.today():
-            flash('A data de lançamento não pode ser no futuro.', 'danger')
-            return redirect(url_for('massa_dados'))
-    except (ValueError, TypeError):
-        flash('Formato de data inválido.', 'danger')
+    if not all([tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
+        flash('Todos os campos (exceto Assunto) e pelo menos uma loja devem ser preenchidos.', 'danger')
         return redirect(url_for('massa_dados'))
         
-    # --- Nova Lógica de Inserção ---
-
-    # 1. Prepara os registros individuais para a tabela tb_atendimentos_massa
     registros_para_massa = [
-        (str(uuid.uuid4()), data, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+        (str(uuid.uuid4()), data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
          int(loja_num), tipo, acao, assunto or None)
         for loja_num in lojas_selecionadas
     ]
 
-    # 2. Prepara o registro de resumo para a tabela tb_atendimentos
     registro_sumario = [(
-        str(uuid.uuid4()), data, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
-        -1,  # Loja -1 para indicar inserção em massa
-        tipo, acao, assunto or None
+        str(uuid.uuid4()), data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+        -1, tipo, acao, assunto or None
     )]
 
-    # 3. Executa as inserções como uma transação
     conn = g.db
     if conn is None:
         flash('Erro de conexão com o banco de dados.', 'danger')
@@ -226,28 +223,19 @@ def salvar_dados_massa():
     cursor = None
     try:
         cursor = conn.cursor()
-        
-        # Insere na nova tabela de massa
         rowcount_massa = database.insert_atendimentos_massa(cursor, registros_para_massa)
-        
-        # Insere o resumo na tabela principal
         database.insert_atendimentos(cursor, registro_sumario)
-
-        # Se tudo correu bem, comita a transação
         conn.commit()
-
         flash(f'{rowcount_massa} registros salvos com sucesso na inserção em massa!', 'success')
-
     except Error as e:
         if conn:
-            conn.rollback() # Reverte todas as alterações em caso de erro
+            conn.rollback()
         flash(f'Erro ao salvar os dados no banco: {e}', 'danger')
     finally:
         if cursor:
             cursor.close()
 
     return redirect(url_for('massa_dados'))
-
 
 @app.route('/atualizar', methods=['POST'])
 def atualizar_dados():

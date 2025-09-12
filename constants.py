@@ -1,5 +1,10 @@
 # aplicacao_web_atendimento/constants.py
 
+# --- CONTROLO DE FUNCIONALIDADES (FEATURE FLAGS) ---
+# Altere para True para ativar a restrição de data mínima (ex: 3 dias atrás).
+# Altere para False para desativar a restrição.
+DATE_FILTER_ENABLED = False
+
 # Opções para os menus
 TAREFAS_OPCOES = [
     "ACODE - 2024", "ACODE - 2025", "ACODE - 2026", "ADMINISTRATIVO", 
