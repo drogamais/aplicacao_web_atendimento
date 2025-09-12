@@ -98,10 +98,62 @@ def insert_atendimentos(cursor, registros):
     return cursor.rowcount
 
 def insert_atendimentos_massa(cursor, registros):
-    """Prepara e executa a inserção para a tabela tb_atendimentos_massa."""
+    """
+    Prepara e executa a inserção para a tabela tb_atendimentos_massa.
+    Agora inclui a coluna id_massa para vincular ao registro resumo.
+    """
     sql_insert = """
-        INSERT INTO tb_atendimentos_massa (chave_id, data, tarefa, responsavel, funcao, loja, tipo, acao, assunto)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO tb_atendimentos_massa (chave_id, id_massa, data, tarefa, responsavel, funcao, loja, tipo, acao, assunto)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     cursor.executemany(sql_insert, registros)
     return cursor.rowcount
+
+def get_atendimentos_massa_para_deletar():
+    """
+    Busca os registros de resumo (loja = -1) da tabela de atendimentos.
+    """
+    conn = g.db
+    if conn is None: return []
+    
+    cursor = conn.cursor(dictionary=True)
+    try:
+        query = "SELECT * FROM tb_atendimentos WHERE loja = -1 ORDER BY data DESC, chave_id DESC"
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Error as e:
+        print(f"Erro ao buscar atendimentos em massa para deletar: {e}")
+        return []
+    finally:
+        cursor.close()
+
+def delete_atendimentos_massa(ids_para_deletar):
+    """
+    Deleta registros da tb_atendimentos (resumo) e da tb_atendimentos_massa (detalhes)
+    usando o id_massa como vínculo.
+    """
+    conn = g.db
+    if conn is None: return 0, "Erro de conexão com o banco de dados."
+    
+    cursor = conn.cursor()
+    try:
+        # Prepara a query para aceitar uma lista de IDs
+        # O formato precisa ser %s, %s, ... para cada item na lista
+        format_strings = ','.join(['%s'] * len(ids_para_deletar))
+
+        # Deleta da tabela de detalhes (massa)
+        sql_delete_massa = f"DELETE FROM tb_atendimentos_massa WHERE id_massa IN ({format_strings})"
+        cursor.execute(sql_delete_massa, tuple(ids_para_deletar))
+        
+        # Deleta da tabela principal (resumo)
+        sql_delete_resumo = f"DELETE FROM tb_atendimentos WHERE chave_id IN ({format_strings})"
+        cursor.execute(sql_delete_resumo, tuple(ids_para_deletar))
+
+        conn.commit()
+        # Retorna o total de registros afetados (soma das duas operações)
+        return cursor.rowcount, None
+    except Error as e:
+        conn.rollback()
+        return 0, str(e)
+    finally:
+        cursor.close()

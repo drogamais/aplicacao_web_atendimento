@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Deletar Lançamentos em Massa{% endblock %}
+
+{% block content %}
+    <h1>Deletar Lançamentos em Massa</h1>
+    <p>
+        Abaixo estão os registros "resumo" de todos os lançamentos em massa (identificados como Loja -1).
+        <br>
+        Ao selecionar e deletar um registro desta lista, <strong>TODOS</strong> os lançamentos individuais associados a ele serão <strong>permanentemente removidos</strong>.
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if atendimentos %}
+    <form action="{{ url_for('executar_delecao_massa') }}" method="post" onsubmit="return confirm('Você tem certeza que deseja deletar os registros selecionados? Esta ação não pode ser desfeita.');">
+        <table>
+            <thead>
+                <tr>
+                    <th>Deletar?</th>
+                    <th>Data</th>
+                    <th>Tarefa</th>
+                    <th>Responsável</th>
+                    <th>Assunto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for atendimento in atendimentos %}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="selecionado" value="{{ atendimento.chave_id }}">
+                    </td>
+                    <td>{{ atendimento.data.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ atendimento.tarefa }}</td>
+                    <td>{{ atendimento.responsavel }}</td>
+                    <td>{{ atendimento.assunto }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="button-danger" style="width: 100%; max-width: none;">Deletar Selecionados</button>
+    </form>
+    {% else %}
+    <p>Nenhum registro de lançamento em massa encontrado.</p>
+    {% endif %}
+{% endblock %}

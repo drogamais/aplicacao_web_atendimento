@@ -141,6 +141,19 @@ def editar_dados():
         filtros={'data_filtro': data_filtro, 'responsavel': responsavel_filtro}
     )
 
+@app.route('/deletar_massa')
+def deletar_massa():
+    """
+    Nova rota para a página de exclusão de registros em massa.
+    Busca apenas os registros "resumo" (loja = -1).
+    """
+    atendimentos_massa = database.get_atendimentos_massa_para_deletar()
+    return render_template(
+        'deletar_massa.html',
+        atendimentos=atendimentos_massa,
+        active_page='deletar_massa'
+    )
+
 @app.route('/salvar', methods=['POST'])
 def salvar_dados():
     data_str = request.form.get('data')
@@ -203,16 +216,21 @@ def salvar_dados_massa():
     if not all([tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
         flash('Todos os campos (exceto Assunto) e pelo menos uma loja devem ser preenchidos.', 'danger')
         return redirect(url_for('massa_dados'))
-        
+
+    # Gera um ID único para o LOTE de inserção em massa
+    id_massa = str(uuid.uuid4())
+    
+    # Cria a lista de registros para a tb_atendimentos_massa
     registros_para_massa = [
-        (str(uuid.uuid4()), data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+        (str(uuid.uuid4()), id_massa, data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
          int(loja_num), tipo, acao, assunto or None)
         for loja_num in lojas_selecionadas
     ]
 
+    # Cria o registro "resumo" para a tb_atendimentos, usando o ID do lote como chave_id
     registro_sumario = [(
-        str(uuid.uuid4()), data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
-        -1, tipo, acao, assunto or None
+        id_massa, data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+        -1, tipo, acao, f"Lançamento em massa para {len(lojas_selecionadas)} lojas."
     )]
 
     conn = g.db
@@ -223,8 +241,10 @@ def salvar_dados_massa():
     cursor = None
     try:
         cursor = conn.cursor()
-        rowcount_massa = database.insert_atendimentos_massa(cursor, registros_para_massa)
+        # Primeiro, insere o registro resumo
         database.insert_atendimentos(cursor, registro_sumario)
+        # Depois, insere os registros detalhados com o ID do resumo
+        rowcount_massa = database.insert_atendimentos_massa(cursor, registros_para_massa)
         conn.commit()
         flash(f'{rowcount_massa} registros salvos com sucesso na inserção em massa!', 'success')
     except Error as e:
@@ -236,6 +256,26 @@ def salvar_dados_massa():
             cursor.close()
 
     return redirect(url_for('massa_dados'))
+
+
+@app.route('/executar_delecao_massa', methods=['POST'])
+def executar_delecao_massa():
+    """
+    Nova rota para processar a exclusão dos registros em massa selecionados.
+    """
+    ids_para_deletar = request.form.getlist('selecionado')
+    if not ids_para_deletar:
+        flash('Nenhum registro foi selecionado para exclusão.', 'warning')
+        return redirect(url_for('deletar_massa'))
+
+    rowcount, error = database.delete_atendimentos_massa(ids_para_deletar)
+    if error:
+        flash(f'Erro ao deletar os registros: {error}', 'danger')
+    else:
+        flash(f'{rowcount} registros em massa foram deletados com sucesso!', 'success')
+    
+    return redirect(url_for('deletar_massa'))
+
 
 @app.route('/atualizar', methods=['POST'])
 def atualizar_dados():

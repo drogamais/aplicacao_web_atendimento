@@ -30,8 +30,9 @@
                 <div id="myDropdown" class="dropdown-content">
                     <a href="{{ url_for('index') }}" class="{{ 'active' if active_page == 'index' else '' }}">Inserção Padrão</a>
                     <a href="{{ url_for('convenio') }}" class="{{ 'active' if active_page == 'convenio' else '' }}">Convênio</a>
-                    <a href="{{ url_for('massa_dados') }}" class="{{ 'active' if active_page == 'massa' else '' }}">Inserir em Massa</a>
                     <a href="{{ url_for('editar_dados') }}" class="{{ 'active' if active_page == 'editar' else '' }}">Editar Lançamentos</a>
+                    <a href="{{ url_for('massa_dados') }}" class="{{ 'active' if active_page == 'massa' else '' }}">Inserir em Massa</a>
+                    <a href="{{ url_for('deletar_massa') }}" class="{{ 'active' if active_page == 'deletar_massa' else '' }}">Deletar Massa</a>
                 </div>
             </div>
         </nav>
