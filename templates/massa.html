@@ -27,7 +27,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><input type="date" name="data" required></td>
+                    <td><input type="date" name="data" required min="{{ min_date }}" max="{{ max_date }}"></td>
                     <td>
                         <select name="tarefa" required>
                             <option value="">Selecione...</option>

@@ -39,37 +39,50 @@ def teardown_request(exception):
 
 @app.route('/')
 def index():
+    today = date.today()
+    three_days_ago = today - timedelta(days=3)
     return render_template(
-        'index.html', 
+        'index.html',
         tarefas=TAREFAS_OPCOES,
         responsaveis=INDEX_RESPONSAVEIS_OPCOES,
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
-        active_page='index'
+        active_page='index',
+        #min_date=three_days_ago.isoformat(),
+        min_date=None,
+        max_date=today.isoformat()
     )
 
 @app.route('/convenio')
 def convenio():
+    today = date.today()
+    three_days_ago = today - timedelta(days=3)
     return render_template(
         'convenio.html',
         tarefas=CONVENIO_TAREFAS_OPCOES,
         responsaveis=["VALERIA APARECIDA BONFIM SOARES"],
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
-        active_page='convenio'
+        active_page='convenio',
+        min_date=three_days_ago.isoformat(),
+        max_date=today.isoformat()
     )
 
 @app.route('/massa')
 def massa_dados():
+    today = date.today()
+    three_days_ago = today - timedelta(days=3)
     lojas_ativas = database.get_lojas_ativas()
     return render_template(
-        'massa.html', 
+        'massa.html',
         tarefas=TAREFAS_OPCOES,
         responsaveis=RESPONSAVEIS_OPCOES,
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
         lojas=lojas_ativas,
-        active_page='massa'
+        active_page='massa',
+        min_date=three_days_ago.isoformat(),
+        max_date=today.isoformat()
     )
 
 @app.route('/editar')
@@ -111,11 +124,23 @@ def editar_dados():
 
 @app.route('/salvar', methods=['POST'])
 def salvar_dados():
-    data = request.form.get('data')
+    data_str = request.form.get('data')
     nome_responsavel = request.form.get('responsavel')
     
-    if not data or not nome_responsavel:
+    if not data_str or not nome_responsavel:
         flash('Os campos "Data" e "Responsável" são obrigatórios.', 'danger')
+        return redirect(request.referrer)
+
+    # Validação da data
+    try:
+        data_selecionada = date.fromisoformat(data_str)
+        today = date.today()
+        three_days_ago = today - timedelta(days=3)
+        if not (three_days_ago <= data_selecionada <= today):
+            flash('A data de lançamento deve estar entre hoje e, no máximo, 3 dias atrás.', 'danger')
+            return redirect(request.referrer)
+    except ValueError:
+        flash('Formato de data inválido.', 'danger')
         return redirect(request.referrer)
 
     tarefas = request.form.getlist('tarefa')
@@ -132,7 +157,7 @@ def salvar_dados():
                 return redirect(request.referrer)
             
             registros_para_inserir.append((
-                str(uuid.uuid4()), data, tarefas[i], nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+                str(uuid.uuid4()), data_str, tarefas[i], nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
                 int(lojas[i]), tipos[i], acoes[i], assuntos[i] or None
             ))
 
@@ -151,7 +176,7 @@ def salvar_dados():
 
 @app.route('/salvar_massa', methods=['POST'])
 def salvar_dados_massa():
-    data = request.form.get('data')
+    data_str = request.form.get('data')
     tarefa = request.form.get('tarefa')
     nome_responsavel = request.form.get('responsavel')
     tipo = request.form.get('tipo')
@@ -159,12 +184,24 @@ def salvar_dados_massa():
     assunto = request.form.get('assunto')
     lojas_selecionadas = request.form.getlist('lojas')
 
-    if not all([data, tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
+    if not all([data_str, tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
         flash('Todos os campos e pelo menos uma loja devem ser preenchidos.', 'danger')
+        return redirect(url_for('massa_dados'))
+
+    # Validação da data
+    try:
+        data_selecionada = date.fromisoformat(data_str)
+        today = date.today()
+        three_days_ago = today - timedelta(days=3)
+        if not (three_days_ago <= data_selecionada <= today):
+            flash('A data de lançamento deve estar entre hoje e, no máximo, 3 dias atrás.', 'danger')
+            return redirect(url_for('massa_dados'))
+    except ValueError:
+        flash('Formato de data inválido.', 'danger')
         return redirect(url_for('massa_dados'))
         
     registros_para_inserir = [
-        (str(uuid.uuid4()), data, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
+        (str(uuid.uuid4()), data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
          int(loja_num), tipo, acao, assunto or None)
         for loja_num in lojas_selecionadas
     ]

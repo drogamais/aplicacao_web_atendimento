@@ -5,7 +5,7 @@ SECRET_KEY = 'troque-esta-chave-secreta'
 DB_CONFIG = {
     "user": "seu_usuario_aqui",
     "password": "SUA_SENHA_AQUI",
-    "host": "ip_do_banco_de_dados",
+    "host": "10.48.12.20",
     "port": 3306,
     "database": "dbSults",
     "collation": "utf8mb4_general_ci"
