@@ -39,24 +39,25 @@
                     <th class="th-acao">Ação</th>
                     <th class="th-assunto">Assunto (Opcional)</th>
                 </tr>
+            ...
             </thead>
             <tbody>
-                {% for i in range(7) %}
+                {% for linha in linhas_formulario %}
                 <tr>
                     <td>
                         <select name="tarefa">
                             <option value="">Selecione...</option>
                             {% for tarefa in tarefas %}
-                            <option value="{{ tarefa }}">{{ tarefa }}</option>
+                            <option value="{{ tarefa }}" {% if tarefa == linha.get('tarefa') %}selected{% endif %}>{{ tarefa }}</option>
                             {% endfor %}
                         </select>
                     </td>
-                    <td><input type="number" name="loja" min="0" max="999"></td>
+                    <td><input type="number" name="loja" min="0" max="999" value="{{ linha.get('loja', '') }}"></td>
                     <td>
-                            <select name="tipo">
+                        <select name="tipo">
                             <option value="">Selecione...</option>
                             {% for tipo in tipos %}
-                            <option value="{{ tipo }}">{{ tipo }}</option>
+                            <option value="{{ tipo }}" {% if tipo == linha.get('tipo') %}selected{% endif %}>{{ tipo }}</option>
                             {% endfor %}
                         </select>
                     </td>
@@ -64,11 +65,11 @@
                         <select name="acao">
                             <option value="">Selecione...</option>
                             {% for acao in acoes %}
-                            <option value="{{ acao }}">{{ acao }}</option>
+                            <option value="{{ acao }}" {% if acao == linha.get('acao') %}selected{% endif %}>{{ acao }}</option>
                             {% endfor %}
                         </select>
                     </td>
-                    <td><input type="text" name="assunto" maxlength="255"></td>
+                    <td><input type="text" name="assunto" maxlength="255" value="{{ linha.get('assunto', '') }}"></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -76,7 +77,8 @@
         <button type="submit">Salvar Dados</button>
     </form>
     
-    <button id="btn-limpar" class="button-danger">Limpar Formulário</button>
-{% endblock %} {% block scripts %}
+    <button id="btn-limpar" class="button-danger" type="button" data-url="{{ url_for('convenio', limpar=1) }}">Limpar Formulário</button>
+{% endblock %} 
+{% block scripts %}
     <script src="{{ url_for('static', filename='js/formHandler.js') }}"></script>
 {% endblock %}

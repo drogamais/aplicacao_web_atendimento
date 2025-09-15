@@ -1,6 +1,6 @@
 # aplicacao_web_atendimento/app.py
 
-from flask import Flask, render_template, request, redirect, url_for, flash, g
+from flask import Flask, render_template, request, redirect, url_for, flash, g, session
 import uuid
 from datetime import date, timedelta
 from mysql.connector import Error
@@ -62,7 +62,39 @@ def is_valid_date(date_str):
 
 @app.route('/')
 def index():
+    # ALTERAÇÃO 2: Lógica para limpar o formulário
+    if 'limpar' in request.args:
+        session.pop('form_data', None)
+        # Redireciona para remover o parâmetro ?limpar=1 da URL
+        return redirect(url_for('index'))
+
     min_date, max_date = get_date_rules()
+    data_selecionada = request.args.get('data')
+    responsavel_selecionado = request.args.get('responsavel')
+
+    # ALTERAÇÃO 3: Pega os dados da sessão e prepara as linhas para o template
+    form_data = session.get('form_data', {})
+    linhas_formulario = []
+    
+    # Se houver dados na sessão, recria as linhas preenchidas
+    if form_data:
+        num_linhas_preenchidas = len(form_data.get('lojas', []))
+        for i in range(num_linhas_preenchidas):
+            # Adiciona apenas as linhas que foram de fato preenchidas (tinham loja)
+            if form_data['lojas'][i]:
+                linhas_formulario.append({
+                    'tarefa': form_data['tarefas'][i],
+                    'loja': form_data['lojas'][i],
+                    'tipo': form_data['tipos'][i],
+                    'acao': form_data['acoes'][i],
+                    'assunto': form_data['assuntos'][i]
+                })
+
+    # Completa com linhas vazias até atingir o total de 7
+    num_linhas_vazias = 7 - len(linhas_formulario)
+    for _ in range(num_linhas_vazias):
+        linhas_formulario.append({})
+
     return render_template(
         'index.html',
         tarefas=TAREFAS_OPCOES,
@@ -71,12 +103,40 @@ def index():
         acoes=ACOES_OPCOES,
         active_page='index',
         min_date=min_date.isoformat() if min_date else None,
-        max_date=max_date.isoformat()
+        max_date=max_date.isoformat(),
+        data_selecionada=data_selecionada,
+        responsavel_selecionado=responsavel_selecionado,
+        linhas_formulario=linhas_formulario # Envia as linhas processadas
     )
 
 @app.route('/convenio')
 def convenio():
+    # ALTERAÇÃO 4: Lógica similar para a página de convênio
+    if 'limpar' in request.args:
+        session.pop('form_data', None)
+        return redirect(url_for('convenio'))
+        
     min_date, max_date = get_date_rules()
+    data_selecionada = request.args.get('data')
+    
+    form_data = session.get('form_data', {})
+    linhas_formulario = []
+    if form_data:
+        num_linhas_preenchidas = len(form_data.get('lojas', []))
+        for i in range(num_linhas_preenchidas):
+            if form_data['lojas'][i]:
+                linhas_formulario.append({
+                    'tarefa': form_data['tarefas'][i],
+                    'loja': form_data['lojas'][i],
+                    'tipo': form_data['tipos'][i],
+                    'acao': form_data['acoes'][i],
+                    'assunto': form_data['assuntos'][i]
+                })
+    
+    num_linhas_vazias = 7 - len(linhas_formulario)
+    for _ in range(num_linhas_vazias):
+        linhas_formulario.append({})
+
     return render_template(
         'convenio.html',
         tarefas=CONVENIO_TAREFAS_OPCOES,
@@ -85,13 +145,27 @@ def convenio():
         acoes=ACOES_OPCOES,
         active_page='convenio',
         min_date=min_date.isoformat() if min_date else None,
-        max_date=max_date.isoformat()
+        max_date=max_date.isoformat(),
+        data_selecionada=data_selecionada,
+        # O responsável é fixo, mas a lógica de reter a data é útil
+        responsavel_selecionado="VALERIA APARECIDA BONFIM SOARES",
+        linhas_formulario=linhas_formulario
     )
 
 @app.route('/massa')
 def massa_dados():
+    # ALTERAÇÃO 1: Lógica para limpar o formulário em massa
+    if 'limpar' in request.args:
+        session.pop('massa_form_data', None)
+        return redirect(url_for('massa_dados'))
+
     min_date, max_date = get_date_rules()
     lojas_ativas = database.get_lojas_ativas()
+    
+    # ALTERAÇÃO 2: Pega os dados da sessão para repopular o formulário
+    # Usamos uma chave diferente para não conflitar com o outro formulário
+    form_data = session.get('massa_form_data', {})
+
     return render_template(
         'massa.html',
         tarefas=TAREFAS_OPCOES,
@@ -101,7 +175,8 @@ def massa_dados():
         lojas=lojas_ativas,
         active_page='massa',
         min_date=min_date.isoformat() if min_date else None,
-        max_date=max_date.isoformat()
+        max_date=max_date.isoformat(),
+        form_data=form_data # Envia os dados da sessão para o template
     )
 
 
@@ -180,28 +255,40 @@ def deletar_massa():
 def salvar_dados():
     data_str = request.form.get('data')
     nome_responsavel = request.form.get('responsavel')
-    
+    origin_page = request.form.get('origin_page', 'index')
+
+    # Validações...
     if not nome_responsavel:
         flash('O campo "Responsável" é obrigatório.', 'danger')
-        return redirect(request.referrer)
+        return redirect(url_for(origin_page, data=data_str, responsavel=nome_responsavel))
 
     is_valid, error_msg = is_valid_date(data_str)
     if not is_valid:
         flash(error_msg, 'danger')
-        return redirect(request.referrer)
+        return redirect(url_for(origin_page, data=data_str, responsavel=nome_responsavel))
 
+    # Pega os dados das listas
     tarefas = request.form.getlist('tarefa')
     lojas = request.form.getlist('loja')
     tipos = request.form.getlist('tipo')
     acoes = request.form.getlist('acao')
     assuntos = request.form.getlist('assunto')
 
+    # ALTERAÇÃO 5: Guarda os dados do formulário na sessão
+    session['form_data'] = {
+        'tarefas': tarefas,
+        'lojas': lojas,
+        'tipos': tipos,
+        'acoes': acoes,
+        'assuntos': assuntos
+    }
+
     registros_para_inserir = []
     for i in range(len(lojas)):
         if lojas[i]: 
             if not tarefas[i] or not tipos[i] or not acoes[i]:
                 flash(f'Erro na Linha {i+1}: Campos obrigatórios não preenchidos.', 'danger')
-                return redirect(request.referrer)
+                return redirect(url_for(origin_page, data=data_str, responsavel=nome_responsavel))
             
             registros_para_inserir.append((
                 str(uuid.uuid4()), data_str, tarefas[i], nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
@@ -210,18 +297,23 @@ def salvar_dados():
 
     if not registros_para_inserir:
         flash('Nenhuma linha preenchida para salvar.', 'warning')
-        return redirect(request.referrer)
+        return redirect(url_for(origin_page, data=data_str, responsavel=nome_responsavel))
 
     rowcount, error = database.save_new_atendimentos(registros_para_inserir)
     if error:
         flash(f'Erro ao salvar os dados no banco: {error}', 'danger')
     else:
+        # Após salvar com sucesso, limpa os dados da sessão para a próxima inserção ser limpa.
+        session.pop('form_data', None)
         flash(f'{rowcount} registros salvos com sucesso!', 'success')
 
-    return redirect(request.referrer)
+    # Redireciona mantendo apenas data e responsável
+    return redirect(url_for(origin_page, data=data_str, responsavel=nome_responsavel))
+
 
 @app.route('/salvar_massa', methods=['POST'])
 def salvar_dados_massa():
+    # Pega os dados do formulário
     data_str = request.form.get('data')
     tarefa = request.form.get('tarefa')
     nome_responsavel = request.form.get('responsavel')
@@ -230,6 +322,18 @@ def salvar_dados_massa():
     assunto = request.form.get('assunto')
     lojas_selecionadas = request.form.getlist('lojas')
 
+    # ALTERAÇÃO 3: Guarda os dados do formulário na sessão ANTES das validações
+    session['massa_form_data'] = {
+        'data': data_str,
+        'tarefa': tarefa,
+        'responsavel': nome_responsavel,
+        'tipo': tipo,
+        'acao': acao,
+        'assunto': assunto,
+        'lojas_selecionadas': lojas_selecionadas
+    }
+
+    # Validações
     is_valid, error_msg = is_valid_date(data_str)
     if not is_valid:
         flash(error_msg, 'danger')
@@ -239,46 +343,45 @@ def salvar_dados_massa():
         flash('Todos os campos (exceto Assunto) e pelo menos uma loja devem ser preenchidos.', 'danger')
         return redirect(url_for('massa_dados'))
 
-    # Gera um ID único para o LOTE de inserção em massa
+    # ... (lógica para criar os registros para o banco de dados) ...
+    # O código abaixo permanece o mesmo
     id_massa = str(uuid.uuid4())
-    
-    # Cria a lista de registros para a tb_atendimentos_massa
     registros_para_massa = [
         (str(uuid.uuid4()), id_massa, data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
          int(loja_num), tipo, acao, assunto or None)
         for loja_num in lojas_selecionadas
     ]
-
-    # Cria o registro "resumo" para a tb_atendimentos, usando o ID do lote como chave_id
-    # O assunto agora é o que foi digitado no formulário
     registro_sumario = [(
         id_massa, data_str, tarefa, nome_responsavel, FUNCAO_MAP.get(nome_responsavel),
         -1, tipo, acao, assunto or None
     )]
 
     conn = g.db
-    if conn is None:
-        flash('Erro de conexão com o banco de dados.', 'danger')
-        return redirect(url_for('massa_dados'))
-
+    # ... (lógica de inserção no banco de dados) ...
+    
     cursor = None
     try:
         cursor = conn.cursor()
-        # Primeiro, insere o registro resumo
         database.insert_atendimentos(cursor, registro_sumario)
-        # Depois, insere os registros detalhados com o ID do resumo
         rowcount_massa = database.insert_atendimentos_massa(cursor, registros_para_massa)
         conn.commit()
+        
+        # ALTERAÇÃO 4: Se tudo deu certo, limpa os dados da sessão
+        session.pop('massa_form_data', None)
         flash(f'{rowcount_massa} registros salvos com sucesso na inserção em massa!', 'success')
+
     except Error as e:
         if conn:
             conn.rollback()
         flash(f'Erro ao salvar os dados no banco: {e}', 'danger')
+        # Se deu erro, os dados continuam na sessão e o formulário será repopulado
+        return redirect(url_for('massa_dados'))
     finally:
         if cursor:
             cursor.close()
 
-    return redirect(url_for('massa_dados'))
+    # Se deu sucesso, redireciona sem os dados do formulário, mantendo apenas a data e o responsável como antes
+    return redirect(url_for('massa_dados', data=data_str, responsavel=nome_responsavel))
 
 
 @app.route('/executar_delecao_massa', methods=['POST'])

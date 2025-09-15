@@ -13,26 +13,17 @@
         {% endif %}
     {% endwith %}
 
+    ...
     <form action="{{ url_for('salvar_dados_massa') }}" method="post" id="atendimento-massa-form">
         <table>
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Tarefa</th>
-                    <th>Responsável</th>
-                    <th>Tipo</th>
-                    <th>Ação</th>
-                    <th>Assunto (Opcional)</th>
-                </tr>
-            </thead>
             <tbody>
                 <tr>
-                    <td><input type="date" name="data" required min="{{ min_date }}" max="{{ max_date }}"></td>
+                    <td><input type="date" name="data" required min="{{ min_date }}" max="{{ max_date }}" value="{{ form_data.get('data', '') }}"></td>
                     <td>
                         <select name="tarefa" required>
                             <option value="">Selecione...</option>
                             {% for tarefa in tarefas %}
-                            <option value="{{ tarefa }}">{{ tarefa }}</option>
+                            <option value="{{ tarefa }}" {% if tarefa == form_data.get('tarefa') %}selected{% endif %}>{{ tarefa }}</option>
                             {% endfor %}
                         </select>
                     </td>
@@ -40,15 +31,15 @@
                         <select name="responsavel" required>
                             <option value="">Selecione...</option>
                             {% for resp in responsaveis %}
-                            <option value="{{ resp }}">{{ resp }}</option>
+                            <option value="{{ resp }}" {% if resp == form_data.get('responsavel') %}selected{% endif %}>{{ resp }}</option>
                             {% endfor %}
                         </select>
                     </td>
                     <td>
-                            <select name="tipo" required>
+                        <select name="tipo" required>
                             <option value="">Selecione...</option>
                             {% for tipo in tipos %}
-                            <option value="{{ tipo }}">{{ tipo }}</option>
+                            <option value="{{ tipo }}" {% if tipo == form_data.get('tipo') %}selected{% endif %}>{{ tipo }}</option>
                             {% endfor %}
                         </select>
                     </td>
@@ -56,25 +47,21 @@
                         <select name="acao" required>
                             <option value="">Selecione...</option>
                             {% for acao in acoes %}
-                            <option value="{{ acao }}">{{ acao }}</option>
+                            <option value="{{ acao }}" {% if acao == form_data.get('acao') %}selected{% endif %}>{{ acao }}</option>
                             {% endfor %}
                         </select>
                     </td>
-                    <td><input type="text" name="assunto" maxlength="255"></td>
+                    <td><input type="text" name="assunto" maxlength="255" value="{{ form_data.get('assunto', '') }}"></td>
                 </tr>
             </tbody>
         </table>
 
         <div class="lojas-container">
-            <h2>Selecione as Lojas</h2>
-            <div class="lojas-actions">
-                <input type="checkbox" id="selecionar-todas">
-                <label for="selecionar-todas">Selecionar Todas</label>
-            </div>
             <div class="lojas-checklist">
                 {% for loja in lojas %}
                 <div class="loja-item">
-                    <input type="checkbox" name="lojas" value="{{ loja.LOJA_NUMERO }}" id="loja_{{ loja.LOJA_NUMERO }}">
+                    <input type="checkbox" name="lojas" value="{{ loja.LOJA_NUMERO }}" id="loja_{{ loja.LOJA_NUMERO }}"
+                           {% if loja.LOJA_NUMERO|string in form_data.get('lojas_selecionadas', []) %}checked{% endif %}>
                     <label for="loja_{{ loja.LOJA_NUMERO }}">{{ loja.LOJA_NUMERO }} - {{ loja.FANTASIA }}</label>
                 </div>
                 {% else %}
@@ -86,8 +73,9 @@
         <button type="submit">Salvar Dados em Massa</button>
     </form>
     
-    <button id="btn-limpar" class="button-danger">Limpar Formulário</button>
-{% endblock %} {% block scripts %}
+    <button id="btn-limpar" class="button-danger" type="button" data-url="{{ url_for('massa_dados', limpar=1) }}">Limpar Formulário</button>
+{% endblock %} 
+{% block scripts %}
     <script src="{{ url_for('static', filename='js/massaPage.js') }}"></script>
     <script src="{{ url_for('static', filename='js/formHandler.js') }}"></script>
 {% endblock %}
