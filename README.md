@@ -87,6 +87,8 @@ python run.py --dev
 
 Modo de Produção
 
+COMMIT TESTE
+
 Este modo usa o servidor waitress, que é mais estável e seguro. Use este modo para o ambiente final.
 
 ```bash
