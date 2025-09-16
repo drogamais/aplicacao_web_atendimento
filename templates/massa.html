@@ -13,9 +13,18 @@
         {% endif %}
     {% endwith %}
 
-    ...
     <form action="{{ url_for('salvar_dados_massa') }}" method="post" id="atendimento-massa-form">
         <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Tarefa</th>
+                    <th>Responsável</th>
+                    <th>Tipo</th>
+                    <th>Ação</th>
+                    <th>Assunto(Opcional)</th>
+                </tr>
+            </thead>
             <tbody>
                 <tr>
                     <td><input type="date" name="data" required min="{{ min_date }}" max="{{ max_date }}" value="{{ form_data.get('data', '') }}"></td>

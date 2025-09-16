@@ -36,7 +36,7 @@ def get_date_rules():
     today = date.today()
     min_date_obj = None
     if DATE_FILTER_ENABLED:
-        min_date_obj = today - timedelta(days=3)
+        min_date_obj = today - timedelta(days=5)
     return min_date_obj, today
 
 def is_valid_date(date_str):
@@ -224,7 +224,13 @@ def editar_dados():
     if todos_atendimentos:
         todos_atendimentos.sort(key=lambda x: x['data'], reverse=True)
 
-    data_corte = date.today() - timedelta(days=14)
+    # Cria uma lista completa e ordenada de responsáveis para os filtros
+    responsaveis_no_banco = sorted(list(set(a['responsavel'] for a in todos_atendimentos)))
+    
+    # Combina a lista do banco com a lista do 'constants' e remove duplicatas
+    lista_completa_responsaveis = sorted(list(set(responsaveis_no_banco + RESPONSAVEIS_OPCOES)))
+
+    data_corte = date.today() - timedelta(days=5)
 
     return render_template(
         'editar.html', 

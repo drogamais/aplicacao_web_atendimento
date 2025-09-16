@@ -59,8 +59,8 @@
 
                 <tr>
                     <td>
-                        {# Apenas mostra o checkbox se for editável PELA DATA e se a ORIGEM for 'normal' #}
-                        {% if is_editable and atendimento.origem == 'normal' %}
+                        {# Apenas mostra o checkbox se for editável PELA DATA, se a ORIGEM for 'normal' E se a TAREFA não for 'MOVIDESK' #}
+                        {% if is_editable and atendimento.origem == 'normal' and atendimento.tarefa != 'MOVIDESK' %}
                             <input type="checkbox" name="selecionado" value="{{ atendimento.chave_id }}" class="edit-checkbox">
                         {% endif %}
                     </td>
@@ -68,6 +68,9 @@
                     <td><input type="date" name="data_{{ atendimento.chave_id }}" value="{{ atendimento.data.strftime('%Y-%m-%d') }}" disabled></td>
                     <td>
                         <select name="tarefa_{{ atendimento.chave_id }}" disabled>
+                            {% if atendimento.tarefa not in tarefas_opcoes %}
+                                <option value="{{ atendimento.tarefa }}" selected>{{ atendimento.tarefa }}</option>
+                            {% endif %}
                             {% for tarefa in tarefas_opcoes %}
                             <option value="{{ tarefa }}" {% if tarefa == atendimento.tarefa %}selected{% endif %}>{{ tarefa }}</option>
                             {% endfor %}
@@ -75,6 +78,9 @@
                     </td>
                     <td>
                         <select name="responsavel_{{ atendimento.chave_id }}" disabled>
+                            {% if atendimento.responsavel not in responsaveis_opcoes %}
+                                <option value="{{ atendimento.responsavel }}" selected>{{ atendimento.responsavel }}</option>
+                            {% endif %}
                             {% for resp in responsaveis_opcoes %}
                             <option value="{{ resp }}" {% if resp == atendimento.responsavel %}selected{% endif %}>{{ resp }}</option>
                             {% endfor %}
@@ -82,7 +88,10 @@
                     </td>
                     <td><input type="number" name="loja_{{ atendimento.chave_id }}" value="{{ atendimento.loja }}" min="0" max="999" disabled></td>
                     <td>
-                            <select name="tipo_{{ atendimento.chave_id }}" disabled>
+                        <select name="tipo_{{ atendimento.chave_id }}" disabled>
+                            {% if atendimento.tipo not in tipos_opcoes %}
+                                <option value="{{ atendimento.tipo }}" selected>{{ atendimento.tipo }}</option>
+                            {% endif %}
                             {% for tipo in tipos_opcoes %}
                             <option value="{{ tipo }}" {% if tipo == atendimento.tipo %}selected{% endif %}>{{ tipo }}</option>
                             {% endfor %}
@@ -90,6 +99,9 @@
                     </td>
                     <td>
                         <select name="acao_{{ atendimento.chave_id }}" disabled>
+                            {% if atendimento.acao not in acoes_opcoes %}
+                                <option value="{{ atendimento.acao }}" selected>{{ atendimento.acao }}</option>
+                            {% endif %}
                             {% for acao in acoes_opcoes %}
                             <option value="{{ acao }}" {% if acao == atendimento.acao %}selected{% endif %}>{{ acao }}</option>
                             {% endfor %}
