@@ -59,8 +59,8 @@
 
                 <tr>
                     <td>
-                        {# Apenas mostra o checkbox se for editável PELA DATA, se a ORIGEM for 'normal' E se a TAREFA não for 'MOVIDESK' #}
-                        {% if is_editable and atendimento.origem == 'normal' and atendimento.tarefa != 'MOVIDESK' %}
+                        {# CORREÇÃO APLICADA AQUI: Verifica o TIPO e não a TAREFA #}
+                        {% if is_editable and atendimento.origem == 'normal' and atendimento.tipo != 'MOVIDESK' %}
                             <input type="checkbox" name="selecionado" value="{{ atendimento.chave_id }}" class="edit-checkbox">
                         {% endif %}
                     </td>
