@@ -36,7 +36,7 @@ def get_date_rules():
     today = date.today()
     min_date_obj = None
     if DATE_FILTER_ENABLED:
-        min_date_obj = today - timedelta(days=5)
+        min_date_obj = today - timedelta(days=30)
     return min_date_obj, today
 
 def is_valid_date(date_str):
