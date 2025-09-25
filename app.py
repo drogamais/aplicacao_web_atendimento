@@ -36,7 +36,7 @@ def get_date_rules():
     today = date.today()
     min_date_obj = None
     if DATE_FILTER_ENABLED:
-        min_date_obj = today - timedelta(days=30)
+        min_date_obj = today - timedelta(days=24)
     return min_date_obj, today
 
 def is_valid_date(date_str):
@@ -230,7 +230,7 @@ def editar_dados():
     # Combina a lista do banco com a lista do 'constants' e remove duplicatas
     lista_completa_responsaveis = sorted(list(set(responsaveis_no_banco + RESPONSAVEIS_OPCOES)))
 
-    data_corte = date.today() - timedelta(days=5)
+    data_corte = date.today() - timedelta(days=24)
 
     return render_template(
         'editar.html', 
