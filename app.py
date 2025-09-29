@@ -328,6 +328,7 @@ def salvar_dados_massa():
     acao = request.form.get('acao')
     assunto = request.form.get('assunto')
     lojas_selecionadas = request.form.getlist('lojas')
+    origin_page = request.form.get('origin_page', 'massa_dados')
 
     # ALTERAÇÃO 3: Guarda os dados do formulário na sessão ANTES das validações
     session['massa_form_data'] = {
@@ -344,11 +345,11 @@ def salvar_dados_massa():
     is_valid, error_msg = is_valid_date(data_str)
     if not is_valid:
         flash(error_msg, 'danger')
-        return redirect(url_for('massa_dados'))
+        return redirect(url_for(origin_page))
 
     if not all([tarefa, nome_responsavel, tipo, acao]) or not lojas_selecionadas:
         flash('Todos os campos (exceto Assunto) e pelo menos uma loja devem ser preenchidos.', 'danger')
-        return redirect(url_for('massa_dados'))
+        return redirect(url_for(origin_page))
 
     # ... (lógica para criar os registros para o banco de dados) ...
     # O código abaixo permanece o mesmo
@@ -382,13 +383,37 @@ def salvar_dados_massa():
             conn.rollback()
         flash(f'Erro ao salvar os dados no banco: {e}', 'danger')
         # Se deu erro, os dados continuam na sessão e o formulário será repopulado
-        return redirect(url_for('massa_dados'))
+        return redirect(url_for(origin_page))
     finally:
         if cursor:
             cursor.close()
 
     # Se deu sucesso, redireciona sem os dados do formulário, mantendo apenas a data e o responsável como antes
-    return redirect(url_for('massa_dados', data=data_str, responsavel=nome_responsavel))
+    return redirect(url_for(origin_page, data=data_str, responsavel=nome_responsavel))
+
+@app.route('/massa_convenio')
+def massa_convenio():
+    if 'limpar' in request.args:
+        session.pop('massa_form_data', None)
+        return redirect(url_for('massa_convenio'))
+
+    min_date, max_date = get_date_rules()
+    lojas_ativas = database.get_lojas_ativas()
+    form_data = session.get('massa_form_data', {})
+
+    return render_template(
+        'massa_convenio.html',
+        # Passa apenas as listas específicas para esta página
+        tarefas=CONVENIO_TAREFAS_OPCOES,
+        responsaveis=["VALERIA APARECIDA BONFIM SOARES"],
+        tipos=TIPOS_OPCOES,
+        acoes=ACOES_OPCOES,
+        lojas=lojas_ativas,
+        active_page='massa_convenio', # Identificador para o menu
+        min_date=min_date.isoformat() if min_date else None,
+        max_date=max_date.isoformat(),
+        form_data=form_data
+    )
 
 
 @app.route('/executar_delecao_massa', methods=['POST'])

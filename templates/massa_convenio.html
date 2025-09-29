@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Entrada em Massa{% endblock %}
+{% block title %}Entrada em Massa - Convênio{% endblock %}
 
 {% block content %}
-    <h1>Entrada de Atendimentos em Massa</h1>
+    <h1>Entrada de Atendimentos em Massa - Convênio</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -14,6 +14,9 @@
     {% endwith %}
 
     <form action="{{ url_for('salvar_dados_massa') }}" method="post" id="atendimento-massa-form">
+        {# Adiciona um campo oculto para sabermos de qual página o formulário veio #}
+        <input type="hidden" name="origin_page" value="massa_convenio">
+
         <table>
             <thead>
                 <tr>
@@ -31,6 +34,7 @@
                     <td>
                         <select name="tarefa" required>
                             <option value="">Selecione...</option>
+                            {# O loop agora usa a lista de tarefas de convênio passada pela rota #}
                             {% for tarefa in tarefas %}
                             <option value="{{ tarefa }}" {% if tarefa == form_data.get('tarefa') %}selected{% endif %}>{{ tarefa }}</option>
                             {% endfor %}
@@ -38,9 +42,9 @@
                     </td>
                     <td>
                         <select name="responsavel" required>
-                            <option value="">Selecione...</option>
+                             {# O responsável é fixo, então só há uma opção #}
                             {% for resp in responsaveis %}
-                            <option value="{{ resp }}" {% if resp == form_data.get('responsavel') %}selected{% endif %}>{{ resp }}</option>
+                            <option value="{{ resp }}" selected>{{ resp }}</option>
                             {% endfor %}
                         </select>
                     </td>
@@ -66,25 +70,17 @@
         </table>
 
         <div class="lojas-container">
-            <div class="lojas-checklist">
-                {% for loja in lojas %}
-                <div class="loja-item">
-                    <input type="checkbox" name="lojas" value="{{ loja.LOJA_NUMERO }}" id="loja_{{ loja.LOJA_NUMERO }}"
-                           {% if loja.LOJA_NUMERO|string in form_data.get('lojas_selecionadas', []) %}checked{% endif %}>
-                    <label for="loja_{{ loja.LOJA_NUMERO }}">{{ loja.LOJA_NUMERO }} - {{ loja.FANTASIA }}</label>
-                </div>
-                {% else %}
-                <p>Nenhuma loja ativa encontrada no banco de dados.</p>
-                {% endfor %}
-            </div>
+            ...
         </div>
 
         <button type="submit">Salvar Dados em Massa</button>
     </form>
     
-    <button id="btn-limpar" class="button-danger" type="button" data-url="{{ url_for('massa_dados', limpar=1) }}">Limpar Formulário</button>
+    <button id="btn-limpar" class="button-danger" type="button" data-url="{{ url_for('massa_convenio', limpar=1) }}">Limpar Formulário</button>
 {% endblock %} 
+
 {% block scripts %}
+    {# Não precisamos mais do formLogic.js aqui! #}
     <script src="{{ url_for('static', filename='js/massaPage.js') }}"></script>
     <script src="{{ url_for('static', filename='js/formHandler.js') }}"></script>
 {% endblock %}
