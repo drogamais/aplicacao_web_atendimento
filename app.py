@@ -169,6 +169,7 @@ def massa_dados():
     return render_template(
         'massa.html',
         tarefas=TAREFAS_OPCOES,
+        convenio_tarefas=CONVENIO_TAREFAS_OPCOES,
         responsaveis=RESPONSAVEIS_OPCOES,
         tipos=TIPOS_OPCOES,
         acoes=ACOES_OPCOES,
