@@ -99,8 +99,7 @@ def get_atendimentos_massa_para_deletar():
 
     cursor = conn.cursor(dictionary=True)
     try:
-        # Etapa 1: Buscar os registros de resumo. Esta query é simples e confiável.
-        query_resumos = "SELECT * FROM tb_atendimentos WHERE loja = -1 ORDER BY data DESC, chave_id DESC"
+        query_resumos = "SELECT * FROM tb_atendimentos WHERE loja = -1 AND status = 'ATIVO' ORDER BY data DESC, chave_id DESC"
         cursor.execute(query_resumos)
         atendimentos = cursor.fetchall()
 
@@ -137,30 +136,27 @@ def get_atendimentos_massa_para_deletar():
         if cursor:
             cursor.close()
 
-def delete_atendimentos_massa(ids_para_deletar):
+def soft_delete_atendimentos_massa(ids_para_desativar):
     """
-    Deleta registros da tb_atendimentos (resumo) e da tb_atendimentos_massa (detalhes)
-    usando o id_massa como vínculo.
+    Realiza um SOFT DELETE. Altera o status dos registros para 'DELETADO'
+    em vez de apagar permanentemente.
     """
     conn = g.db
     if conn is None: return 0, "Erro de conexão com o banco de dados."
-    
+
     cursor = conn.cursor()
     try:
-        # Prepara a query para aceitar uma lista de IDs
-        # O formato precisa ser %s, %s, ... para cada item na lista
-        format_strings = ','.join(['%s'] * len(ids_para_deletar))
+        format_strings = ','.join(['%s'] * len(ids_para_desativar))
 
-        # Deleta da tabela de detalhes (massa)
-        sql_delete_massa = f"DELETE FROM tb_atendimentos_massa WHERE id_massa IN ({format_strings})"
-        cursor.execute(sql_delete_massa, tuple(ids_para_deletar))
-        
-        # Deleta da tabela principal (resumo)
-        sql_delete_resumo = f"DELETE FROM tb_atendimentos WHERE chave_id IN ({format_strings})"
-        cursor.execute(sql_delete_resumo, tuple(ids_para_deletar))
+        # Atualiza o status na tabela de detalhes (massa)
+        sql_update_massa = f"UPDATE tb_atendimentos_massa SET status = 'DELETADO' WHERE id_massa IN ({format_strings})"
+        cursor.execute(sql_update_massa, tuple(ids_para_desativar))
+
+        # Atualiza o status na tabela principal (resumo)
+        sql_update_resumo = f"UPDATE tb_atendimentos SET status = 'DELETADO' WHERE chave_id IN ({format_strings})"
+        cursor.execute(sql_update_resumo, tuple(ids_para_desativar))
 
         conn.commit()
-        # Retorna o total de registros afetados (soma das duas operações)
         return cursor.rowcount, None
     except Error as e:
         conn.rollback()

@@ -3,11 +3,12 @@
 {% block title %}Deletar Lançamentos em Massa{% endblock %}
 
 {% block content %}
-    <h1>Deletar Lançamentos em Massa</h1>
+    <h1>Lixeira - Lançamentos em Massa</h1>
     <p>
-        Abaixo estão os registros "resumo" de todos os lançamentos em massa (identificados como Loja -1).
+        Abaixo estão os lançamentos em massa ativos.
         <br>
-        Ao selecionar e deletar um registro desta lista, <strong>TODOS</strong> os lançamentos individuais associados a ele serão <strong>permanentemente removidos</strong>.
+        Ao selecionar e mover para a lixeira, os registros associados ficarão <strong>inativos</strong>,
+        mas <strong>não serão permanentemente removidos</strong> e poderão ser recuperados pela equipe de TI.
     </p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -19,7 +20,7 @@
     {% endwith %}
 
     {% if atendimentos %}
-    <form action="{{ url_for('executar_delecao_massa') }}" method="post" onsubmit="return confirm('Você tem certeza que deseja deletar os registros selecionados? Esta ação não pode ser desfeita.');">
+    <form action="{{ url_for('executar_delecao_massa') }}" method="post" onsubmit="return confirm('Você tem certeza que deseja mover os registros selecionados para a lixeira?');">
         <table>
             <thead>
                 <tr>

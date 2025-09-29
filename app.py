@@ -418,19 +418,17 @@ def massa_convenio():
 
 @app.route('/executar_delecao_massa', methods=['POST'])
 def executar_delecao_massa():
-    """
-    Nova rota para processar a exclusão dos registros em massa selecionados.
-    """
     ids_para_deletar = request.form.getlist('selecionado')
     if not ids_para_deletar:
         flash('Nenhum registro foi selecionado para exclusão.', 'warning')
         return redirect(url_for('deletar_massa'))
 
-    rowcount, error = database.delete_atendimentos_massa(ids_para_deletar)
+    rowcount, error = database.soft_delete_atendimentos_massa(ids_para_deletar)
+    
     if error:
-        flash(f'Erro ao deletar os registros: {error}', 'danger')
+        flash(f'Erro ao desativar os registros: {error}', 'danger')
     else:
-        flash(f'{rowcount} registros em massa foram deletados com sucesso!', 'success')
+        flash(f'Lançamentos em massa movidos para a lixeira com sucesso!', 'success')
     
     return redirect(url_for('deletar_massa'))
 
