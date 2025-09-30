@@ -70,7 +70,17 @@
         </table>
 
         <div class="lojas-container">
-            ...
+            <div class="lojas-checklist">
+                {% for loja in lojas %}
+                <div class="loja-item">
+                    <input type="checkbox" name="lojas" value="{{ loja.LOJA_NUMERO }}" id="loja_{{ loja.LOJA_NUMERO }}"
+                           {% if loja.LOJA_NUMERO|string in form_data.get('lojas_selecionadas', []) %}checked{% endif %}>
+                    <label for="loja_{{ loja.LOJA_NUMERO }}">{{ loja.LOJA_NUMERO }} - {{ loja.FANTASIA }}</label>
+                </div>
+                {% else %}
+                <p>Nenhuma loja ativa encontrada no banco de dados.</p>
+                {% endfor %}
+            </div>
         </div>
 
         <button type="submit">Salvar Dados em Massa</button>
