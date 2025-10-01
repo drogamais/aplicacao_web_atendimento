@@ -4,7 +4,7 @@ import mysql.connector
 from mysql.connector import Error
 from flask import g  # Importa o 'g', o contexto global da requisição
 from config import DB_CONFIG
-from datetime import date, timedelta  # ADICIONE ESTA LINHA
+from datetime import date, timedelta 
 
 def get_db_connection():
     """Cria e retorna uma NOVA conexão com o banco de dados."""
@@ -156,6 +156,28 @@ def soft_delete_atendimentos_massa(ids_para_desativar):
         sql_update_resumo = f"UPDATE tb_atendimentos SET status = 'DELETADO' WHERE chave_id IN ({format_strings})"
         cursor.execute(sql_update_resumo, tuple(ids_para_desativar))
 
+        conn.commit()
+        return cursor.rowcount, None
+    except Error as e:
+        conn.rollback()
+        return 0, str(e)
+    finally:
+        cursor.close()
+
+def update_atendimentos_no_banco(registros):
+    """Atualiza atendimentos existentes no banco de dados."""
+    conn = g.db
+    if conn is None:
+        return 0, "Erro de conexão com o banco de dados."
+
+    cursor = conn.cursor()
+    sql_update = """
+        UPDATE tb_atendimentos
+        SET data = %s, tarefa = %s, responsavel = %s, loja = %s, tipo = %s, acao = %s, assunto = %s
+        WHERE chave_id = %s
+    """
+    try:
+        cursor.executemany(sql_update, registros)
         conn.commit()
         return cursor.rowcount, None
     except Error as e:
