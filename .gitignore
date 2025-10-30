@@ -14,3 +14,5 @@ config.py
 # 4. (Opcional) Ficheiros de configuração do Editor de Código
 .vscode/
 .idea/
+
+deploy.ps1
