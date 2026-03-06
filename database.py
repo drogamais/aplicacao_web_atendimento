@@ -23,7 +23,14 @@ def get_lojas_ativas():
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("USE drogamais")
-        query = "SELECT LOJA_NUMERO, FANTASIA FROM tb_loja WHERE ATIVO = 1 AND LOJA_NUMERO IS NOT NULL AND LOJA_NUMERO > 0 ORDER BY LOJA_NUMERO"
+        query = """
+            SELECT loja_numero AS LOJA_NUMERO, fantasia AS FANTASIA
+            FROM dbDrogamais.bronze_lojas
+            WHERE ativo = b'1'
+              AND loja_numero IS NOT NULL
+              AND loja_numero > 0
+            ORDER BY loja_numero
+        """
         cursor.execute(query)
         return cursor.fetchall()
     except Error as e:
