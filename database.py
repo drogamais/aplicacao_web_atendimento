@@ -25,7 +25,7 @@ def get_lojas_ativas():
         cursor.execute("USE drogamais")
         query = """
             SELECT loja_numero AS LOJA_NUMERO, fantasia AS FANTASIA
-            FROM dbDrogamais.bronze_lojas
+            FROM drogamais.dim_lojas
             WHERE ativo = b'1'
               AND loja_numero IS NOT NULL
               AND loja_numero > 0
